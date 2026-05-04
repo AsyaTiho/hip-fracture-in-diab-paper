@@ -1,0 +1,21 @@
+# Ignore large data files
+*.pkl
+*.db
+*.csv
+*.npz
+*.h5
+*.pt
+*.pth
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore LaTeX build files
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.synctex.gz
+*.fls
+*.fdb_latexmk

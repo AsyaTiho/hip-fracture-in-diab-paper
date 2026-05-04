@@ -1,0 +1,79 @@
+In PHE2024_db_querying.ipynb, we are specifically quering patients that have the following criteria:
+a) are enrolled for at least for one year =>     
+    SELECT enrolid 
+    FROM visibility_results 
+    WHERE total_visibility > 1
+b) who are 20 and above at the enrolment
+     query = """
+     SELECT e.enrolid 
+     FROM main.ENROL_INTERVAL e
+     JOIN db2.DEMO d ON e.enrolid = d.enrolid
+     WHERE (e.startyear - d.dobyr) >= 20
+ """
+c) and who have diabetes
+    diab_phe = {"EM_202", "EM_202.1", "BI_181", "EM_202.2"} #phecode_X encoding
+
+    # Create a string with the correct number of question marks: "?, ?, ?, ..."
+    placeholders = ', '.join(['?'] * len(diab_phe))
+
+    # The SQL query just uses the placeholders
+    script = f"""
+    SELECT DISTINCT enrolid
+    FROM PHE
+    WHERE phecode in ({placeholders})
+"""
+In the script retrieve_phe_intdays_from_PHE_2024.py, we as of 03/06/2026,
+we also added a line that only retrieves codes whose intday
+is when they are above >=20
+
+# Load dobyr for eligible patients to filter diagnoses by age
+print("Loading demographics for age filtering...")
+demo_con = sqlite3.connect('DEMO_2024.db')
+demo_cursor = demo_con.cursor()
+demo_cursor.execute("SELECT enrolid, dobyr FROM DEMO")
+dobyr_lookup = {}
+for eid, dob in demo_cursor:
+    if eid in list_of_ids:
+        dobyr_lookup[eid] = dob
+demo_con.close()
+print(f"Loaded dobyr for {len(dobyr_lookup):,} eligible patients")
+
+def build_dict_phe_chunked_v2(list_of_ids, dobyr_lookup, db2, table, chunk_size=10000):
+
+    """Extract PHE codes from PHE_2024.db and their intday - days of diagnosis.
+    Only includes diagnoses where the patient was >= 20 years old."""
+    conn_dx = sqlite3.connect(db2)
+    c2 = conn_dx.cursor()
+    
+    query = f"""
+    SELECT enrolid, intday, phecode
+    FROM {table}
+    """
+    
+    c2.execute(query)
+    
+    phe_patients = {}
+    all_dxs = set()
+    
+    total_processed = 0
+    total_matched = 0
+    total_age_filtered = 0
+    
+    while True:
+        chunk = c2.fetchmany(chunk_size)
+        
+        if not chunk:
+            break
+        
+        for id, intday, dx in chunk:
+            total_processed += 1
+            
+            if id in list_of_ids:
+                dobyr = dobyr_lookup.get(id)
+                if dobyr is None:
+                    continue
+                age = int(2003 + intday / 365.25 - dobyr)
+                
+                if age < 20:
+                    total_age_filtered += 1
+                    continue

@@ -1,0 +1,322 @@
+\documentclass[12pt]{article}
+
+% Packages
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{multirow}
+
+% Line spacing
+\doublespacing
+
+% Title block
+\title{Hip Fracture Risk Prediction in Diabetic Patients:\\
+A Comparison of BEHRT-LoRA, XGBoost, and Neural Network Models}
+\author{Anna Gerasimenko}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+TODO: Abstract text here.
+\end{abstract}
+
+\newpage
+
+
+
+%% ============================================================
+%%  METHODS SECTION TEMPLATE
+%%  Hip Fracture Risk Prediction in Diabetic Patients:
+%%  BEHRT-LoRA vs. XGBoost vs. Neural Network
+%% ============================================================
+
+\section{Methods}
+
+%% ----------------------------------------------------------
+\subsection{Study Design and Overview}
+%% ----------------------------------------------------------
+
+In this retrospective cohort study, we used the IBM MarketScan
+Commercial Claims Database to develop and internally validate three machine
+learning models to predict hip fracture risk in adult patients with
+diabetes.
+The prediction task is framed as four-class classification, stratifying
+patients by the interval between their first recorded diabetes diagnosis and
+their first recorded hip fracture.
+%% TODO: Add more details about the models we used and their architectures.
+
+Trained models were subsequently applied without re-training to an
+independent external validation cohort drawn from the All of Us Research
+Program. 
+This allowed us to assess generalizability across diverse populations.
+
+
+%% ----------------------------------------------------------
+\subsection{Data Sources}
+%% ----------------------------------------------------------
+
+\subsubsection{IBM MarketScan Commercial Claims Database}
+
+%% TODO: Insert years of data, enrollment figures, and any
+%%       relevant database version information here.
+MarketScan contains de-identified administrative claims from
+employer-sponsored health plans across the United States.
+Data elements used include inpatient and outpatient diagnosis codes
+(ICD-9-CM and ICD-10-CM), enrollment records, and patient
+demographic information.
+
+\subsubsection{All of Us Research Program}
+
+%% TODO: Insert CDR version, enrollment figures, and any IRB
+%%       or data-access agreement language required by the journal.
+The All of Us Research Program is a longitudinal prospective cohort
+that enrolls participants from across the United States, with the goal
+of reflecting the diversity of the U.S.\ population.
+EHR data are provided through Controlled Tier access to the
+Researcher Workbench (CDR~v8; controlled tier).
+For this study, only participants with at least one EHR condition
+record were included.
+
+%% ----------------------------------------------------------
+\subsection{Study Cohort and Inclusion Criteria}
+%% ----------------------------------------------------------
+
+Patients were identified from the IBM MarketScan database by applying three
+sequential inclusion criteria.
+
+\paragraph{Enrollment duration.}
+Patients were required to be enrolled for at least one full year of continuous insurance coverage.
+This criterion yielded $N=$138{,}879{,}229 continuously enrolled patients.
+
+\paragraph{Adult age at enrollment.}
+Only patients aged 20 years or older at the start of their first enrollment
+interval were retained. This criterion yielded $N=$179{,}415{,}164 patients.
+
+\paragraph{Diabetes diagnosis.}
+Patients were required to have at least one claim mapped to a
+diabetes-specific PhecodeX code: \texttt{EM\_202} (type~2 diabetes mellitus),
+\texttt{EM\_202.1}, \texttt{EM\_202.2}, or \texttt{BI\_181} (type~1 diabetes
+mellitus).
+This criterion yielded $N=$18{,}110{,}999 patients.
+
+With all three criteria applied, $N=$12{,}174{,}785 patients remained.
+These patients formed the final study cohort.
+
+\paragraph{Outcome definition and risk-group assignment.}
+
+Some patients had multiple diabetes diagnoses. The ealiest diabetes diagnosis date was defined as the index diabetes date for each patient. 
+PhecodeX codes \texttt{MS\_745.11} (fracture of femur) and \texttt{MS\_745.9} (pathological fracture) were used to identify patients with a hip fracture and the earliest hip fracture date was assigned as the outcome index date for each patient.
+
+We then split the target cohort into four mutually exclusive risk groups based on the number of days between the diabetes index date and the outcome index date.
+
+\begin{table}[h]
+\centering
+\caption{Risk-group definitions and cohort counts (MarketScan).}
+\label{tab:groups}
+\begin{tabular}{clp{6cm}r}
+\toprule
+Group & Label & Definition & $N$ \\
+\midrule
+0 & Control         & No hip fracture, fracture on or before diabetes index date,
+                      or fracture $>$10 years after diabetes & 12{,}055{,}663 \\
+1 & $<$1 year       & Hip fracture 1--365 days after diabetes index date & 37{,}646 \\
+2 & 1--5 years      & Hip fracture 366--1{,}825 days after diabetes index date & 58{,}478 \\
+3 & 5--10 years     & Hip fracture 1{,}826--3{,}650 days after diabetes index date & 22{,}998 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Leakage prevention.}
+For patients in risk groups 1--3, clinical features were restricted to
+phecode records with a first diagnosis date strictly before the outcome index date.
+Hip fracture phecodes (\texttt{MS\_745.11} and \texttt{MS\_745.9}) were
+excluded from the feature set entirely across all groups.
+
+%% ----------------------------------------------------------
+\subsection{Feature Representation}
+%% ----------------------------------------------------------
+
+\subsubsection{BEHRT: EHR Token Sequences}
+
+For the transformer-based model, each patient's clinical history was
+represented as an ordered sequence of EHR tokens.
+Diagnosis codes were mapped to phenotype strings using the phecodeX
+ontology.
+A vocabulary of 3{,}309 clinical tokens and 122 age bins was derived
+from the MarketScan training corpus.
+Each token in the sequence was paired with a discretized age-at-event
+value.
+Sequences were truncated to events occurring before the diabetes index
+date to prevent outcome leakage.
+When evaluating on All of Us, the same MarketScan-derived vocabulary
+(\texttt{token2idx.pkl}) was applied to ensure embedding alignment;
+phecodes present in All of Us but absent from the MarketScan
+vocabulary were silently discarded.
+
+\subsubsection{XGBoost and Neural Network: One-Hot Encoded Feature Vectors}
+
+For the gradient-boosted and feedforward models, each patient was
+represented as a sparse binary vector of length 3{,}304, where each
+element indicates the presence or absence of a phecode in that
+patient's pre-index clinical record.
+The feature columns were derived from the MarketScan training cohort.
+When constructing the All of Us feature matrix, the same 3{,}304
+phecode columns were used; phecodes present in All of Us but absent
+from the MarketScan feature set were dropped, and columns with no
+All of Us representation were set to zero.
+
+%% ----------------------------------------------------------
+\subsection{Model Architectures}
+%% ----------------------------------------------------------
+
+\subsubsection{BEHRT-LoRA}
+
+%% TODO: Fill in BEHRT base architecture details (hidden size,
+%%       layers, attention heads) and LoRA hyperparameters.
+BEHRT (BERT for Electronic Health Records)~\cite{TODO_BEHRT} is a
+transformer encoder pre-trained on masked language modeling (MLM)
+over EHR token sequences.
+Following pre-training, the model was fine-tuned for four-class
+classification by appending a linear classification head.
+To reduce the number of trainable parameters, we applied
+Low-Rank Adaptation (LoRA)~\cite{TODO_LoRA} to the self-attention
+weight matrices (rank~$r=$~TODO; $\alpha=$~TODO; target modules:
+query and value projections).
+The final model contains approximately TODO million trainable
+parameters.
+
+\subsubsection{XGBoost}
+
+%% TODO: Insert final hyperparameters (n_estimators, max_depth,
+%%       learning_rate, subsample, colsample_bytree, scale_pos_weight).
+A gradient-boosted decision tree ensemble was trained using
+XGBoost~\cite{TODO_XGBoost} on the sparse one-hot feature matrix.
+Hyperparameters were selected via TODO (grid search / Optuna HPO)
+with TODO-fold cross-validation on the training set.
+
+\subsubsection{Feedforward Neural Network}
+
+%% TODO: Insert layer sizes, activation functions, dropout rates,
+%%       and optimizer details.
+A feedforward neural network (\texttt{SparseClassifier}) was trained
+on the same sparse one-hot features as XGBoost.
+The architecture consisted of TODO fully connected layers with
+TODO activation and a dropout rate of TODO between hidden layers.
+The final softmax layer produced class probabilities for the four
+risk strata.
+
+%% ----------------------------------------------------------
+\subsection{Training Procedure}
+%% ----------------------------------------------------------
+
+All models were trained on the MarketScan cohort using a
+train/validation/test split with random seed~35.
+%% TODO: Insert split proportions (e.g., 70/15/15).
+The training set comprised TODO\% of patients; the held-out test set
+($N=1{,}217{,}479$) was reserved for all reported performance metrics.
+Given the severe class imbalance (the $>$10-year class accounts for
+approximately 99\% of patients), TODO strategy (e.g., class-weighted
+loss / oversampling / no resampling) was applied during training.
+
+BEHRT pre-training used a masked language modeling objective with a
+masking probability of TODO.
+Fine-tuning used the AdamW optimizer~\cite{TODO_AdamW} with a
+learning rate of TODO and a linear warmup over TODO steps.
+XGBoost and NN training used TODO hardware (CPU/GPU).
+
+%% ----------------------------------------------------------
+\subsection{External Validation on All of Us}
+%% ----------------------------------------------------------
+
+The trained MarketScan models were applied without modification to
+the All of Us diabetic cohort ($N=98{,}249$ with EHR data).
+Vocabulary and feature alignment procedures are described in
+Section~\ref{sec:features}.
+Sequence truncation for BEHRT followed the same procedure as
+MarketScan: only events prior to the diabetes index date were
+included.
+
+Due to the computational cost of transformer inference (approximately
+two orders of magnitude greater than scoring sparse feature vectors),
+BEHRT was evaluated on a class-stratified random subsample of
+$N=50{,}000$ patients.
+XGBoost and the neural network were evaluated on the full diabetic
+cohort.
+Because the BEHRT subsample was stratified by risk class, within-class
+proportions are preserved, keeping AUROC, AUPRC, and per-class metrics
+directly comparable across all three models.
+
+%% ----------------------------------------------------------
+\subsection{Evaluation Metrics}
+%% ----------------------------------------------------------
+
+Model performance was assessed using the following metrics, computed
+on the held-out test sets for both MarketScan and All of Us.
+
+\paragraph{Overall performance.}
+We report macro-averaged precision, recall, F1-score, and
+one-vs-rest ROC-AUC.
+Macro averaging was preferred over weighted averaging because the
+dominant $>$10-year class ($\approx$99\% prevalence) would otherwise
+mask meaningful differences in minority-class performance.
+
+\paragraph{Per-class metrics.}
+Precision, recall, and F1-score are reported separately for each of
+the four time-to-fracture strata.
+
+\paragraph{Diagnostic performance.}
+We report the true positive rate (TPR/sensitivity), false positive
+rate (FPR), positive predictive value (PPV/precision), negative
+predictive value (NPV), and predicted positive rate (PPR) per class.
+
+\paragraph{Calibration.}
+Probability calibration was evaluated using the Brier score for each
+class and model under three conditions: raw (uncorrected) model
+probabilities, Platt scaling (logistic regression recalibration), and
+isotonic regression recalibration.
+Calibration was assessed on a held-out calibration-test split
+comprising 30\% of the All of Us evaluation set.
+
+\paragraph{Confusion matrices.}
+Full $4 \times 4$ confusion matrices are reported for each model on
+both datasets to characterize patterns of misclassification.
+
+%% ----------------------------------------------------------
+\subsection{Statistical Considerations}
+%% ----------------------------------------------------------
+
+All performance comparisons between models were conducted on
+identical test-set partitions where possible.
+For All of Us, BEHRT was evaluated on a stratified 50K subsample
+while XGBoost and the neural network were evaluated on the full
+cohort; because stratification preserves class proportions, AUROC,
+AUPRC, and per-class recall are directly comparable across models,
+whereas absolute counts are not.
+No formal statistical significance testing was pre-specified for
+comparisons between model performance metrics; differences are
+reported descriptively.
+%% TODO: Add any IRB approval statement, data access agreement
+%%       language, or reproducibility/code availability statement
+%%       required by the target journal.
+
+%% ============================================================
+%%  END OF METHODS SECTION
+%% ============================================================
+
+
+% Bibliography
+\bibliographystyle{vancouver}  % or apalike, unsrt, etc.
+\bibliography{references}      % references.bib file
+
+\end{document}
