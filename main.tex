@@ -137,11 +137,6 @@ Group & Label & Definition & $N$ \\
 \end{tabular}
 \end{table}
 
-\paragraph{Leakage prevention.}
-For patients in risk groups 1--3, clinical features were restricted to
-phecode records with a first diagnosis date strictly before the outcome index date.
-Hip fracture phecodes (\texttt{MS\_745.11} and \texttt{MS\_745.9}) were
-excluded from the feature set entirely across all groups.
 
 %% ----------------------------------------------------------
 \subsection{Feature Representation}
@@ -149,32 +144,38 @@ excluded from the feature set entirely across all groups.
 
 \subsubsection{BEHRT: EHR Token Sequences}
 
-For the transformer-based model, each patient's clinical history was
-represented as an ordered sequence of EHR tokens.
-Diagnosis codes were mapped to phenotype strings using the phecodeX
-ontology.
-A vocabulary of 3{,}309 clinical tokens and 122 age bins was derived
-from the MarketScan training corpus.
-Each token in the sequence was paired with a discretized age-at-event
-value.
-Sequences were truncated to events occurring before the diabetes index
-date to prevent outcome leakage.
-When evaluating on All of Us, the same MarketScan-derived vocabulary
-(\texttt{token2idx.pkl}) was applied to ensure embedding alignment;
-phecodes present in All of Us but absent from the MarketScan
-vocabulary were silently discarded.
+\paragraph{Code representation.}
+We started with raw ICD-9-CM and ICD-10-CM diagnosis codes from the MarketScan claims and mapped them to PhecodeX phenotypes. 
+This mapping collapses semantically related ICD codes into a single clinically phenotype label. 
+
+\paragraph{Sequence construction.}
+For each patient, all diagnosis events were sorted chronologically and restricted to those occurring before the hip fracture outcome index date.
+Hip fracture phenotypes (\texttt{MS\_745.11} and \texttt{MS\_745.9}) were excluded entirely to prevent outcome leakage.
+Events occurring on the same calendar day were grouped together; a separator marker (\texttt{SEP}) was placed between consecutive visit days, and a final \texttt{SEP} was appended at the end of the record.
+Age at each event was computed as an integer year from the patient's birth year and the event date.
+Sex was recorded as a single patient-level value and attached to every event in the record, since it does not vary over time.
+
+\paragraph{Model input format.}
+BEHRT requires each feature to be expressed as a numeric vector rather than a raw label or number.
+Each phenotype code, integer age, and sex value is therefore looked up in a learned table that maps it to a fixed-length vector of real numbers --- an \textit{embedding} --- so that the model can represent and compare them numerically.
+The phenotype embedding table was built from all unique PhecodeX strings observed in the MarketScan corpus plus five special tokens (\texttt{PAD}, \texttt{CLS}, \texttt{SEP}, \texttt{MASK}, \texttt{UNK}), yielding 3{,}309 entries in total.
+Integer ages were mapped to whole-year bins spanning 0 to 119, giving an age table of 122 entries (including \texttt{PAD} and \texttt{UNK}).
+Sex used three entries: \texttt{PAD}, male, and female.
+Two additional structural embeddings are also added at each position: a \textit{segment embedding} that alternates between two values every time a visit boundary (\texttt{SEP}) is crossed, telling the model which visit a given event belongs to; and a \textit{position embedding} that increments at the visit level rather than the token level, encoding the order of visits across the patient's history.
+All five embeddings --- phenotype, age, sex, segment, and position --- are summed into a single vector at each position, and the model receives the full patient history as an ordered sequence of these per-event vectors.
+
+The transformer can only process 512 positions at once, a fixed architectural limit.
+When a patient's sequence exceeds that, the oldest events are dropped and only the most recent 511 are kept, on the assumption that recent clinical history is most predictive.
+One position is always reserved for a special \texttt{CLS} token prepended to the front of every sequence, hence 511 rather than 512.
+The \texttt{CLS} token has no clinical meaning; it acts as a collection point that the transformer uses to aggregate information from the entire sequence.
+By the time the sequence exits the transformer, the vector at the \texttt{CLS} position has attended to every other position and effectively summarises the whole patient history --- that single vector is then passed to the classification head to predict the risk class.
+
+
+\paragraph{All of Us Research Validation Cohort}
+
 
 \subsubsection{XGBoost and Neural Network: One-Hot Encoded Feature Vectors}
 
-For the gradient-boosted and feedforward models, each patient was
-represented as a sparse binary vector of length 3{,}304, where each
-element indicates the presence or absence of a phecode in that
-patient's pre-index clinical record.
-The feature columns were derived from the MarketScan training cohort.
-When constructing the All of Us feature matrix, the same 3{,}304
-phecode columns were used; phecodes present in All of Us but absent
-from the MarketScan feature set were dropped, and columns with no
-All of Us representation were set to zero.
 
 %% ----------------------------------------------------------
 \subsection{Model Architectures}
