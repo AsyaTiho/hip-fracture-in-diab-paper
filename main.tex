@@ -176,6 +176,16 @@ By the time the sequence exits the transformer, the vector at the \texttt{CLS} p
 
 \subsubsection{XGBoost and Neural Network: One-Hot Encoded Feature Vectors}
 
+For the gradient-boosted decision tree (XGBoost) and feedforward neural network models, each patient's clinical history was represented as a binary feature vector. No chronological information was preserved.
+
+The feature space consisted of $N=$3{,}304 unique PhecodeX phenotypes observed across the MarketScan training cohort. 
+Each element in the vector served as a binary indicator, set to 1 if the corresponding phenotype was present in the patient's clinical record and 0 otherwise. 
+To rigorously prevent outcome leakage, a temporal cutoff was applied: for patients in the three positive risk groups (hip fracture within 10 years), only phenotype codes recorded strictly before the outcome index date were included in the feature vector. 
+For patients in the control group, no temporal restriction was applied. 
+Furthermore, the target hip fracture phenotypes (\texttt{MS\_745.11} and \texttt{MS\_745.9}) were explicitly removed from the feature vocabulary for all patients.
+The resulting dataset comprised $N=$12{,}174{,}785 patient vectors. 
+Due to the nature of clinical claims data, the feature matrix was highly sparse, containing $N=$489{,}442{,}725 non-zero entries (an overall density of approximately 1.22\%). 
+To optimize memory usage and computational efficiency during model training, the data was constructed and stored as a Compressed Sparse Row (CSR) matrix.
 
 %% ----------------------------------------------------------
 \subsection{Model Architectures}
