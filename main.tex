@@ -193,58 +193,138 @@ To optimize memory usage and computational efficiency during model training, the
 
 \subsubsection{BEHRT-LoRA}
 
-%% TODO: Fill in BEHRT base architecture details (hidden size,
-%%       layers, attention heads) and LoRA hyperparameters.
 BEHRT (BERT for Electronic Health Records)~\cite{TODO_BEHRT} is a
-transformer encoder pre-trained on masked language modeling (MLM)
-over EHR token sequences.
-Following pre-training, the model was fine-tuned for four-class
-classification by appending a linear classification head.
-To reduce the number of trainable parameters, we applied
-Low-Rank Adaptation (LoRA)~\cite{TODO_LoRA} to the self-attention
-weight matrices (rank~$r=$~TODO; $\alpha=$~TODO; target modules:
-query and value projections).
-The final model contains approximately TODO million trainable
-parameters.
+transformer encoder adapted from the original BERT architecture for
+medical claims data.
+The model was first pre-trained on the full MarketScan patient corpus
+using a masked language modelling (MLM) objective, and subsequently
+fine-tuned for four-class hip fracture risk prediction.
+
+\paragraph{Encoder architecture.}
+The encoder follows the standard BERT design: a stack of transformer
+layers, each comprising multi-head self-attention followed by a
+position-wise feed-forward network, with residual connections and
+layer normalisation at each sub-layer.
+The input to the encoder is the summed five-component embedding
+described in Section~\ref{sec:features}, passed through layer
+normalisation and dropout before the first transformer layer.
+The pooled representation of the \texttt{CLS} position after the
+final encoder layer is used as the patient-level summary.
+The architecture hyperparameters --- hidden dimension, number of
+transformer layers, number of attention heads, and feed-forward
+intermediate dimension --- were selected by Bayesian hyperparameter
+optimisation (Optuna, TPE sampler, 30 trials) on a subset of 100{,}000
+training patients over 5 epochs each, searching within the ranges:
+hidden dimension $\in \{128, 192, 256, 288, 384\}$; layers~2--8;
+attention heads $\in \{4, 6, 8, 12\}$; intermediate dimension
+$\in \{256, 512, 768, 1{,}024\}$; dropout~0.05--0.30;
+learning rate $10^{-5}$--$5 \times 10^{-4}$.
+
+\paragraph{Pre-training.}
+The model was pre-trained on the MarketScan training corpus using the
+standard MLM objective: 15\% of tokens per sequence were randomly
+selected, of which 80\% were replaced with a \texttt{[MASK]} token,
+10\% with a randomly drawn token from the vocabulary, and 10\% left
+unchanged.
+The model was trained to predict the original token at masked
+positions.
+Training used a 90/10 train/validation split, with up to 100 epochs
+and early stopping (patience 10 evaluations, with 4 evaluations per
+epoch).
+Mixed-precision training (fp16) and gradient accumulation over 4 steps
+were applied, with an effective batch size of $64 \times 4~\text{GPUs}
+\times 4~\text{accumulation steps} = 1{,}024$.
+
+\paragraph{Fine-tuning with LoRA.}
+Following pre-training, the MLM prediction head was discarded and the
+BERT backbone was frozen.
+Low-Rank Adaptation (LoRA)~\cite{TODO_LoRA} was injected into the
+query and value projection matrices of every attention layer.
+LoRA replaces each target weight matrix $W$ with $W + BA$, where $B$
+and $A$ are low-rank factors ($A \in \mathbb{R}^{r \times d}$,
+$B \in \mathbb{R}^{d \times r}$) initialised so that $BA = 0$ at the
+start of fine-tuning.
+Only $A$ and $B$ are updated during fine-tuning; the original $W$ is
+frozen.
+We used rank $r = 16$, scaling factor $\alpha = 32$ (effective scale
+$\alpha / r = 2.0$), and LoRA dropout of 0.1, resulting in
+approximately 1--2\% of total parameters being trainable.
+A linear classification head (dropout followed by a linear projection
+to 4 output logits) was appended to the frozen backbone and also
+trained.
+Fine-tuning used AdamW ($\text{lr} = 2 \times 10^{-4}$, weight decay
+0.01) with a linear warmup over 10\% of training steps, gradient
+accumulation over 4 steps, and a class-weighted cross-entropy loss
+with weights inversely proportional to class frequency.
+Training ran for up to 50 epochs with early stopping (patience 10
+epochs) on the held-out validation loss.
 
 \subsubsection{XGBoost}
 
-%% TODO: Insert final hyperparameters (n_estimators, max_depth,
-%%       learning_rate, subsample, colsample_bytree, scale_pos_weight).
 A gradient-boosted decision tree ensemble was trained using
-XGBoost~\cite{TODO_XGBoost} on the sparse one-hot feature matrix.
-Hyperparameters were selected via TODO (grid search / Optuna HPO)
-with TODO-fold cross-validation on the training set.
+XGBoost~\cite{TODO_XGBoost} on the sparse one-hot binary feature matrix.
+XGBoost builds an ensemble of decision trees sequentially, where each
+new tree is trained to correct the errors of the trees already in the
+ensemble; the final prediction is the weighted sum of all trees'
+outputs.
+
+\paragraph{Class imbalance.}
+The training set contains approximately 99\% control patients and
+$<$1\% fracture cases across the three risk classes.
+To prevent the model from ignoring minority classes, the training set
+was downsampled so that the control class was capped at 600{,}000
+patients (from over 10 million), and sample weights inversely
+proportional to class frequency were applied during training.
+The validation and test sets were left at their natural class
+distributions.
+
+\paragraph{Hyperparameter optimisation.}
+Hyperparameters were selected using Optuna Bayesian optimisation
+(TPE sampler, 60 trials, 4 trials in parallel across 4 GPUs) with
+5-fold stratified cross-validation on the downsampled training set.
+The objective minimised mean cross-entropy loss across folds.
+The best hyperparameter configuration found was:
+maximum tree depth~8; learning rate~0.282; subsampling ratio~0.924;
+column subsampling ratio~0.666; minimum child weight~11;
+$\gamma = 1.138$; $\alpha = 2 \times 10^{-6}$;
+$\lambda = 2.256$; histogram bin count~64.
+The final model was trained on the full downsampled training set
+using these parameters for 500 boosting rounds with early stopping
+on the validation set (patience~50 rounds).
 
 \subsubsection{Feedforward Neural Network}
 
-%% TODO: Insert layer sizes, activation functions, dropout rates,
-%%       and optimizer details.
 A feedforward neural network (\texttt{SparseClassifier}) was trained
-on the same sparse one-hot features as XGBoost.
-The architecture consisted of TODO fully connected layers with
-TODO activation and a dropout rate of TODO between hidden layers.
-The final softmax layer produced class probabilities for the four
-risk strata.
+on the same sparse one-hot feature matrix as XGBoost.
+The architecture consists of four fully connected layers with hidden
+dimensions 512, 256, and 128, each followed by batch normalisation,
+ReLU activation, and dropout.
+The final linear layer maps the 128-dimensional hidden representation
+to four class logits, from which class probabilities are obtained
+via softmax.
 
-%% ----------------------------------------------------------
-\subsection{Training Procedure}
-%% ----------------------------------------------------------
+\paragraph{Class imbalance.}
+The same downsampling strategy as XGBoost was applied: the control
+class was capped at 600{,}000 training patients, and a class-weighted
+cross-entropy loss was used, with weights inversely proportional to
+class frequency in the training set.
 
-All models were trained on the MarketScan cohort using a
-train/validation/test split with random seed~35.
-%% TODO: Insert split proportions (e.g., 70/15/15).
-The training set comprised TODO\% of patients; the held-out test set
-($N=1{,}217{,}479$) was reserved for all reported performance metrics.
-Given the severe class imbalance (the $>$10-year class accounts for
-approximately 99\% of patients), TODO strategy (e.g., class-weighted
-loss / oversampling / no resampling) was applied during training.
+\paragraph{Hyperparameter optimisation.}
+Hyperparameters were selected using Optuna (TPE sampler, 30 trials)
+on a stratified subset of 150{,}000 training patients, with an 80/20
+train/validation split per trial and early stopping after 4 epochs
+without improvement.
+The tuned parameters were learning rate, weight decay, dropout rate,
+and batch size.
+The best configuration was: learning rate~$2.98 \times 10^{-4}$;
+weight decay~$9.59 \times 10^{-4}$; dropout~0.306; batch size~1{,}024.
+The final model was trained on the full downsampled training set using
+these hyperparameters for up to 60 epochs with early stopping
+(patience~10 epochs) based on validation cross-entropy loss.
+The AdamW optimiser was used with a \texttt{ReduceLROnPlateau}
+learning rate scheduler (factor~0.5, patience~3 epochs).
 
-BEHRT pre-training used a masked language modeling objective with a
-masking probability of TODO.
-Fine-tuning used the AdamW optimizer~\cite{TODO_AdamW} with a
-learning rate of TODO and a linear warmup over TODO steps.
-XGBoost and NN training used TODO hardware (CPU/GPU).
+
 
 %% ----------------------------------------------------------
 \subsection{External Validation on All of Us}
