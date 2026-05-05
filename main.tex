@@ -54,7 +54,9 @@ diabetes.
 The prediction task is framed as four-class classification, stratifying
 patients by the interval between their first recorded diabetes diagnosis and
 their first recorded hip fracture.
-%% TODO: Add more details about the models we used and their architectures.
+The three models compared are: (1) BEHRT-LoRA, a transformer encoder adapted from BERT for electronic health records, pre-trained on the full MarketScan corpus via masked language modelling and fine-tuned using Low-Rank Adaptation (LoRA); 
+(2) XGBoost, a gradient-boosted decision tree ensemble; and (3) a feedforward neural network (\texttt{SparseClassifier}).
+BEHRT-LoRA captures the chronological order and co-occurrence structure of diagnoses, while XGBoost and the neural network treat the clinical history as an unordered bag of phenotypes.
 
 Trained models were subsequently applied without re-training to an
 independent external validation cohort drawn from the All of Us Research
@@ -78,15 +80,34 @@ demographic information.
 
 \subsubsection{All of Us Research Program}
 
-%% TODO: Insert CDR version, enrollment figures, and any IRB
-%%       or data-access agreement language required by the journal.
-The All of Us Research Program is a longitudinal prospective cohort
-that enrolls participants from across the United States, with the goal
-of reflecting the diversity of the U.S.\ population.
-EHR data are provided through Controlled Tier access to the
-Researcher Workbench (CDR~v8; controlled tier).
-For this study, only participants with at least one EHR condition
-record were included.
+The \textit{All of Us} Research Program is a longitudinal prospective cohort
+funded by the National Institutes of Health (NIH), enrolling U.S.\ residents
+aged 18 years or older from more than 340 recruitment sites nationwide since
+May 2018~\cite{AllofUs_NEJM}.
+The program explicitly targets groups historically underrepresented in
+biomedical research, including racial and ethnic minorities, individuals with
+limited healthcare access, and other sociodemographically diverse
+populations~\cite{AllofUs_diversity}.
+
+Participant data are organized into a Curated Data Repository (CDR) with
+three access tiers: Public, Registered, and Controlled.
+This study used the \textbf{Controlled Tier CDR~v8}
+(dataset version \texttt{C2024Q3R8}), accessed via the All of Us
+Researcher Workbench, which includes data from participants enrolled
+through October~1, 2023.
+The Controlled Tier provides unshifted event dates and previously suppressed
+demographic fields not available in the Registered Tier~\cite{AllofUs_genomics}.
+
+EHR data in the CDR are structured according to the Observational Medical
+Outcomes Partnership (OMOP) common data model and include demographics,
+diagnoses, procedures, medications, laboratory results, and vital
+signs~\cite{AllofUs_EHR}.
+\textit{All of Us} CDR~v8 contains EHR data from more than 393{,}596
+participants~\cite{AllofUs_CDRv8}.
+Of these, 98{,}399 had a documented diabetes diagnosis and at least one
+condition record, forming the external validation cohort for this study.
+Analyses were conducted within the secure Researcher Workbench environment
+using BigQuery for cohort construction and Python for model inference.
 
 %% ----------------------------------------------------------
 \subsection{Study Cohort and Inclusion Criteria}
@@ -115,7 +136,7 @@ These patients formed the final study cohort.
 
 \paragraph{Outcome definition and risk-group assignment.}
 
-Some patients had multiple diabetes diagnoses. The ealiest diabetes diagnosis date was defined as the index diabetes date for each patient. 
+Some patients had multiple diabetes diagnoses. The earliest diabetes diagnosis date was defined as the index diabetes date for each patient. 
 PhecodeX codes \texttt{MS\_745.11} (fracture of femur) and \texttt{MS\_745.9} (pathological fracture) were used to identify patients with a hip fracture and the earliest hip fracture date was assigned as the outcome index date for each patient.
 
 We then split the target cohort into four mutually exclusive risk groups based on the number of days between the diabetes index date and the outcome index date.
@@ -169,10 +190,6 @@ When a patient's sequence exceeds that, the oldest events are dropped and only t
 One position is always reserved for a special \texttt{CLS} token prepended to the front of every sequence, hence 511 rather than 512.
 The \texttt{CLS} token has no clinical meaning; it acts as a collection point that the transformer uses to aggregate information from the entire sequence.
 By the time the sequence exits the transformer, the vector at the \texttt{CLS} position has attended to every other position and effectively summarises the whole patient history --- that single vector is then passed to the classification head to predict the risk class.
-
-
-\paragraph{All of Us Research Validation Cohort}
-
 
 \subsubsection{XGBoost and Neural Network: One-Hot Encoded Feature Vectors}
 
@@ -330,80 +347,172 @@ learning rate scheduler (factor~0.5, patience~3 epochs).
 \subsection{External Validation on All of Us}
 %% ----------------------------------------------------------
 
-The trained MarketScan models were applied without modification to
-the All of Us diabetic cohort ($N=98{,}249$ with EHR data).
-Vocabulary and feature alignment procedures are described in
-Section~\ref{sec:features}.
-Sequence truncation for BEHRT followed the same procedure as
-MarketScan: only events prior to the diabetes index date were
-included.
 
-Due to the computational cost of transformer inference (approximately
-two orders of magnitude greater than scoring sparse feature vectors),
-BEHRT was evaluated on a class-stratified random subsample of
-$N=50{,}000$ patients.
-XGBoost and the neural network were evaluated on the full diabetic
-cohort.
-Because the BEHRT subsample was stratified by risk class, within-class
-proportions are preserved, keeping AUROC, AUPRC, and per-class metrics
-directly comparable across all three models.
+All three models trained on MarketScan were applied without modification
+to an independent diabetic cohort drawn from the All of Us Controlled
+Tier CDR~v8 (\texttt{C2024Q3R8}).
+The full data construction and inference pipeline was executed within
+the All of Us Researcher Workbench using BigQuery for cohort assembly
+and Python for sequence processing and model scoring.
+
+\subsubsection{Cohort Assembly}
+
+The diabetic cohort was identified from the All of Us phecoded condition
+table using the same diabetes phecode definitions applied to MarketScan
+(Section~\ref{sec:cohort}).
+The index date for each patient was set to the earliest recorded
+diabetes diagnosis.
+Hip fracture outcome labels and time-to-fracture risk classes were
+assigned using the same four-class scheme defined in
+Section~\ref{sec:cohort}.
+Patients with a hip fracture recorded prior to the diabetes index date
+were excluded.
+Sex at birth was obtained from the All of Us \texttt{person} table and
+encoded to match the MarketScan convention (1~=~male, 2~=~female).
+The final diabetic validation cohort comprised 98{,}399 participants
+with at least one EHR condition record.
+
+\subsubsection{Data Construction for BEHRT-LoRA}
+
+Raw ICD-9-CM and ICD-10-CM codes for each patient were mapped to
+PhecodeX phenotype strings using the standard PhecodeX mapping,
+executed in BigQuery over 123~million condition rows.
+Only events occurring prior to the diabetes index date were retained
+to prevent outcome leakage.
+Hip fracture phecodes (\texttt{MS\_745.11} and \texttt{MS\_745.9})
+were excluded from the feature sequences entirely.
+Events sharing the same calendar date were grouped into a single
+visit; a separator token (\texttt{SEP}) was inserted between
+consecutive visit days and appended at the end of each sequence.
+Age at each event was computed as the integer difference between the
+calendar year of the event and the patient's birth year.
+
+Patient sequences were exported from BigQuery in 68 parquet chunks
+and stored in the Researcher Workbench bucket.
+The MarketScan-derived vocabulary (\texttt{token2idx.pkl};
+3{,}309 tokens and 122 age bins) was used to encode all All of Us
+sequences, ensuring that phenotype embeddings aligned with those
+learned during MarketScan training.
+PhecodeX phenotypes present in All of Us but absent from the
+MarketScan vocabulary were mapped to the \texttt{UNK} token.
+
+Because transformer inference is approximately two orders of magnitude
+more expensive than scoring dense or sparse feature vectors, BEHRT-LoRA
+was evaluated on a class-stratified random subsample of
+$N=50{,}000$ patients drawn from the full diabetic cohort.
+Stratified sampling preserved within-class proportions exactly,
+keeping AUROC, AUPRC, and per-class recall directly comparable with
+XGBoost and the neural network.
+
+\subsubsection{Data Construction for XGBoost and Neural Network}
+
+The MarketScan-trained XGBoost and neural network models accept a
+sparse binary feature matrix in which each column represents the
+presence or absence of a phecode in a patient's pre-index clinical
+history.
+To construct a compatible feature matrix for All of Us, all phecoded
+condition records prior to each patient's diabetes index date were
+aggregated per patient in BigQuery, producing a patient--phecode
+co-occurrence table.
+This table was then pivoted into a sparse binary matrix with exactly
+3{,}304 columns, corresponding to the phecode feature set derived from
+the MarketScan training corpus (\texttt{one\_hot\_labels\_metadata\_4groups.npz}).
+Column alignment was enforced by mapping All of Us phecode strings
+directly to the MarketScan column index using the stored
+\texttt{feature\_names} array; the 146 phecodes present in All of Us
+but absent from the MarketScan feature set were silently discarded.
+Columns with no representation in All of Us were retained as all-zero
+vectors to preserve the expected input dimensionality.
+The resulting sparse matrix covered all 98{,}249 patients in the
+full diabetic evaluation cohort.
+
+\subsubsection{Model Inference and Prediction Format}
+
+All three models were applied in inference mode only; no weights were
+updated during validation.
+For BEHRT-LoRA, sequences were tokenized using the MarketScan
+vocabulary, padded or truncated to the model's maximum sequence
+length, and passed through the fine-tuned classification head to
+produce four-class softmax probabilities.
+For XGBoost and the neural network, the column-aligned sparse feature
+matrix was scored directly using the saved MarketScan model artifacts
+(\texttt{xgboost\_4class\_model.json} and
+\texttt{nn\_4class\_weights.pth}, respectively).
+For all models, predictions were saved as \texttt{.npz} archives
+containing \texttt{y\_true}, \texttt{y\_pred}, \texttt{y\_proba},
+and \texttt{person\_id} fields, and evaluated using the same
+notebook pipeline applied to the MarketScan held-out test set.
 
 %% ----------------------------------------------------------
 \subsection{Evaluation Metrics}
 %% ----------------------------------------------------------
 
-Model performance was assessed using the following metrics, computed
-on the held-out test sets for both MarketScan and All of Us.
+Model performance was assessed using a common suite of metrics
+applied identically to all three models and both evaluation cohorts
+(MarketScan held-out test set and All of Us).
+Because the dataset is heavily imbalanced---the control class
+(Group~0) comprises approximately 99\% of all patients---macro
+averaging was used as the primary summary strategy throughout,
+computing unweighted means across all four classes so that minority
+fracture-risk groups receive equal weight.
 
-\paragraph{Overall performance.}
-We report macro-averaged precision, recall, F1-score, and
-one-vs-rest ROC-AUC.
-Macro averaging was preferred over weighted averaging because the
-dominant $>$10-year class ($\approx$99\% prevalence) would otherwise
-mask meaningful differences in minority-class performance.
+\paragraph{Overall classification performance.}
+We report macro-averaged precision, recall, and F1-score, as well as
+macro-averaged one-vs-rest area under the receiver-operating
+characteristic curve (ROC-AUC).
+Macro ROC-AUC was computed using the one-vs-rest strategy:
+for each class, the model's predicted probability for that class was
+treated as the score for a binary discrimination task, and the
+resulting per-class AUCs were averaged without weighting.
 
-\paragraph{Per-class metrics.}
+\paragraph{Per-class classification report.}
 Precision, recall, and F1-score are reported separately for each of
-the four time-to-fracture strata.
+the four time-to-fracture strata (control, $<$1 year, 1--5 years,
+5--10 years), together with macro-averaged and support-weighted
+summary rows, allowing the reader to compare minority-class
+performance across models.
 
-\paragraph{Diagnostic performance.}
-We report the true positive rate (TPR/sensitivity), false positive
-rate (FPR), positive predictive value (PPV/precision), negative
-predictive value (NPV), and predicted positive rate (PPR) per class.
+\paragraph{Precision-recall curves and AUPRC.}
+Precision-recall (PR) curves were constructed for each class under
+the one-vs-rest framing, and the area under each PR curve (AUPRC)
+was computed using the average-precision estimator.
+Because AUPRC is sensitive to class prevalence, we report the
+baseline AUPRC (equal to the class prevalence) alongside the model
+AUPRC for each class to contextualise absolute values.
 
-\paragraph{Calibration.}
-Probability calibration was evaluated using the Brier score for each
-class and model under three conditions: raw (uncorrected) model
-probabilities, Platt scaling (logistic regression recalibration), and
-isotonic regression recalibration.
-Calibration was assessed on a held-out calibration-test split
-comprising 30\% of the All of Us evaluation set.
+\paragraph{Per-class diagnostic metrics.}
+For each class, hard predictions were obtained by taking the argmax
+of the model's output probability vector (four-class argmax), and
+then treating each class as a binary outcome (one-vs-rest).
+We report the true positive rate (TPR; sensitivity), false positive
+rate (FPR; fall-out), positive predictive value (PPV; precision),
+negative predictive value (NPV), and predicted positive rate (PPR)
+derived from the resulting binary confusion counts.
 
 \paragraph{Confusion matrices.}
-Full $4 \times 4$ confusion matrices are reported for each model on
-both datasets to characterize patterns of misclassification.
+Both an overall $4 \times 4$ confusion matrix (rows = true class,
+columns = predicted class) and per-class binary one-vs-rest confusion
+matrices are reported for each model, allowing detailed inspection of
+misclassification patterns across risk strata.
 
-%% ----------------------------------------------------------
-\subsection{Statistical Considerations}
-%% ----------------------------------------------------------
+\paragraph{Probability calibration.}
+Calibration was evaluated using reliability diagrams and the Brier
+score.
+For each class and model, we first report the Brier score on raw
+(uncorrected) output probabilities, together with a baseline Brier
+score equal to $p(1-p)$, where $p$ is the class prevalence, which
+corresponds to a classifier that always predicts the marginal class
+probability.
+We then compared three calibration conditions on a held-out
+calibration-test split (70\% calibration-fit / 30\% calibration-test
+partition of the evaluation set): (i) raw uncorrected probabilities,
+(ii) Platt scaling (per-class univariate logistic regression fitted
+on the raw model probability), and (iii) isotonic regression (a
+non-parametric monotonic mapping fitted per class).
+Brier scores under all three conditions are reported to assess the
+degree of over- or under-confidence in the raw model outputs and the
+benefit of post-hoc recalibration.
 
-All performance comparisons between models were conducted on
-identical test-set partitions where possible.
-For All of Us, BEHRT was evaluated on a stratified 50K subsample
-while XGBoost and the neural network were evaluated on the full
-cohort; because stratification preserves class proportions, AUROC,
-AUPRC, and per-class recall are directly comparable across models,
-whereas absolute counts are not.
-No formal statistical significance testing was pre-specified for
-comparisons between model performance metrics; differences are
-reported descriptively.
-%% TODO: Add any IRB approval statement, data access agreement
-%%       language, or reproducibility/code availability statement
-%%       required by the target journal.
-
-%% ============================================================
-%%  END OF METHODS SECTION
-%% ============================================================
 
 
 % Bibliography
