@@ -3,6 +3,7 @@
 % Packages
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{natbib}
@@ -18,9 +19,8 @@
 \doublespacing
 
 % Title block
-\title{Hip Fracture Risk Prediction in Diabetic Patients:\\
-A Comparison of BEHRT-LoRA, XGBoost, and Neural Network Models}
-\author{Anna Gerasimenko}
+\title{Prediction of Hip Fracture in Patients with Diabetes}
+\author{Anna Gerasimenko, Benjamin Kramer, Rajesh K. Jain, Andrey Rzhetsky}
 \date{\today}
 
 \begin{document}
@@ -32,13 +32,17 @@ TODO: Abstract text here.
 \end{abstract}
 
 \newpage
+\section{Introduction}
 
+Diabetes is one of the most common chronic diseases in the world, affecting an estimated 589~million adults aged 20--79 years in 2024 and is projected to reach 853~million by 2050~\citep{IDF2025Atlas,Genitsaridi2026Lancet}. Beyond well-recognized microvascular complications such as retinopathy and neuropathy, diabetes also confers a substantially increased risk of fragility (low-trauma) fracture. Patients with diabetes have a 2- to 5-fold higher risk of hip fracture than those without diabetes~\citep{Schwartz2001JCEM,Vestergaard2005Diabetologia,Giangregorio2012JBMR,Sellmeyer2016Diabetes,Janghorbani2006DiabetesCare}, and after long-term follow-up, approximately half of all patients with diabetes will sustain a fracture~\citep{Melton2008JBMR}. The excess fracture risk is multifactorial, reflecting a combination of higher fall rates, reduced bone turnover, and impaired bone material properties~\citep{Pijpers2012AgeAgeing,Hygum2017EJE,Furst2016JCEM}.
 
+Despite this elevated risk, it remains difficult to identify which patients with diabetes will fracture and many are never diagnosed with fracture risk. The Fracture Risk Assessment Tool (FRAX) is the most widely used prediction tool and combines demographic, anthropometric, and clinical risk factors to estimate the 10-year probability of fracture~\citep{Kanis2010FRAX}. However, FRAX requires input that is typically obtained through a direct patient interview, which demands clinician time, and in practice it is most often calculated only after bone mineral density testing. Moreover, FRAX has only moderate discriminatory ability for hip fracture (AUROC $\approx 0.78$) and has been repeatedly shown to underestimate the risk of hip fracture in patients with diabetes~\citep{Giangregorio2012JBMR,Beaudoin2019OsteoInt,Jain2025JBMR}.
 
+Diabetes is a heterogeneous disease whose fracture risk factors may differ from those of the general population, suggesting that disease-specific prediction tools are warranted. Advances in predictive modeling could enable targeted bone-health screening for patients with diabetes without requiring additional clinician time or bone mineral density testing. However, to date, only a small number of studies have examined machine-learning approaches to fracture prediction in this population~\citep{Li2023JOSR}. Therefore, the purpose of the present study was to develop and validate a machine-learning model for the prediction of hip fractures in patients with diabetes using a large, heterogeneous and generalizable data source. Specifically, we trained models on the Merative MarketScan Commercial Claims Datasets and externally validated them with analysis of data accumulated by the National Institutes of Health \textit{All of Us} Research Program.
 %% ============================================================
-%%  METHODS SECTION TEMPLATE
-%%  Hip Fracture Risk Prediction in Diabetic Patients:
-%%  BEHRT-LoRA vs. XGBoost vs. Neural Network
+%%  METHODS
+%%  Hip Fracture Risk Prediction in Patients with Diabetes:
+%%  BEHRT-LoRA vs.\ XGBoost vs.\ Feedforward Neural Network
 %% ============================================================
 
 \section{Methods}
@@ -47,12 +51,9 @@ TODO: Abstract text here.
 \subsection{Study Design and Overview}
 %% ----------------------------------------------------------
 
-In this retrospective cohort study, we used the IBM MarketScan Commercial Claims Database to develop and validate three machine learning models to predict hip fracture risk in patients with diabetes. The prediction task is framed as four-class classification, stratifying patients by the time from first recorded diabetes diagnosis to first recorded hip fracture.
-Three models were evaluated: (1) BEHRT-LoRA, a transformer encoder adapted from BERT for electronic health records, pre-trained on the full MarketScan corpus and fine-tuned for classification using Low-Rank Adaptation (LoRA); 
-(2) XGBoost, a gradient-boosted decision tree ensemble; and (3) a feedforward neural network (\texttt{SparseClassifier}). Trained models were subsequently applied without re-training to an
-independent external validation cohort drawn from the All of Us Research
-Program. This allowed us to assess generalization across diverse populations.
+We conducted a retrospective cohort study using the IBM MarketScan Commercial Claims Database to develop and internally validate three machine-learning models for the prediction of hip fracture in patients with diabetes. The prediction task was framed as a four-class classification, in which patients were stratified by the time elapsed between the first recorded diagnosis of diabetes and the first recorded hip fracture (or assigned to a reference class if no diabetes-attributable fracture was observed within ten years).
 
+The three compared models were: (1) BEHRT-LoRA, a BERT adapted transformer encoder for electronic health records~\citep{Devlin2019BERT,Li2020BEHRT}, pre-trained in the entire MarketScan corpus and fine-tuned for classification using Low-Rank Adaptation (LoRA)~\citep{Hu2022LoRA}; (2) XGBoost, a gradient-boosted decision tree ensemble~\citep{Chen2016XGBoost}; and (3) a feedforward neural network (\texttt{SparseClassifier}). All three models were then applied, without retraining, to an independent external validation cohort drawn from the \textit{All of Us} Research Program~\citep{AllofUs2019NEJM}, allowing us to assess generalization to a more demographically diverse population.
 
 %% ----------------------------------------------------------
 \subsection{Data Sources}
@@ -60,55 +61,41 @@ Program. This allowed us to assess generalization across diverse populations.
 
 \subsubsection{IBM MarketScan Commercial Claims Database}
 
-%% TODO: Insert years of data, enrollment figures, and any
-%%       relevant database version information here.
-MarketScan contains de-identified administrative claims from 
-employer-sponsored health plans across the United States, covering patients enrolled between January 2003 and January 2024. Data elements used in this study include inpatient and outpatient diagnosis codes (ICD-9-CM and ICD-10-CM), continuous enrollment 
-records, and patient demographic information.
+The MarketScan Commercial Claims Database contains de-identified administrative claims from employer-sponsored health plans across the United States. The version used in this study covers patients enrolled between January 2003 and January 2024. Data elements included hospital and outpatient diagnosis codes (ICD-9-CM and ICD-10-CM), continuous enrollment records, and patient demographic information.
 
 \subsubsection{All of Us Research Program}
 
-The \textit{All of Us} Research Program is a longitudinal prospective cohort
-funded by the National Institutes of Health (NIH), enrolling U.S.\ residents
-aged 18 years or older from more than 340 recruitment sites nationwide since
-May 2018~\cite{AllofUs_NEJM}.
-The program explicitly targets groups historically underrepresented in
-biomedical research, including racial and ethnic minorities, individuals with
-limited healthcare access, and other sociodemographically diverse
-populations~\cite{AllofUs_diversity}.
+The \textit{All of Us} Research Program is a prospective longitudinal cohort funded by the National Institutes of Health (NIH) that has enrolled U.S.\ residents aged 18 years or older from more than 340 recruitment sites throughout the country since May 2018~\citep{AllofUs2019NEJM}. The program explicitly targets historically underrepresented groups in biomedical research, including racial and ethnic minorities and individuals with limited access to health care~\citep{Ramirez2022AllofUs}.
 
-Participant data are organized into a Curated Data Repository (CDR) with
-three access tiers: Public, Registered, and Controlled.
-This study used the Controlled Tier CDR~v8
-(dataset version \texttt{C2024Q3R8}), accessed via the All of Us
-Researcher Workbench, which includes data from participants enrolled
-through October~1, 2023.
+Participant data are organized into a Curated Data Repository (CDR) with three access tiers: Public, Registered, and Controlled. We used the Controlled Tier CDR~v8 (dataset version \texttt{C2024Q3R8}), accessed via the All of Us Researcher Workbench. This release includes data from participants enrolled through October~1, 2023.
 
 %% ----------------------------------------------------------
 \subsection{Study Cohort and Inclusion Criteria}
 %% ----------------------------------------------------------
 
-The MarketScan study cohort was constructed by linking three administrative tables and retaining only patients meeting all criteria simultaneously.
+The MarketScan study cohort was constructed by linking three administrative tables and retaining only patients who met all eligibility criteria simultaneously:
 
-\textbf{Enrollment table.} Patients were required to have at least one full year of continuous insurance coverage, identifying 138{,}879{,}229 eligible enrollment records.
+\begin{itemize}
+\item \textbf{Enrollment.} At least one full year of continuous insurance coverage (138{,}879{,}229 eligible enrollment records).
+\item \textbf{Demographics.} Age $\geq 20$ years at the start of the first enrollment interval (179{,}415{,}164 eligible demographic records).
+\item \textbf{Diagnosis.} At least one claim was assigned to a diabetes-specific PhecodeX code~\citep{Shuey2023PhecodeX}: \texttt{EM\_202} (type~2 diabetes mellitus), \texttt{EM\_202.1}, \texttt{EM\_202.2}, or \texttt{BI\_181} (type~1 diabetes mellitus) (18{,} 110 {,}999 eligible patients).
+\end{itemize}
 
-\textbf{Demographics table.} Only patients aged 20 years or older at the start of their first enrollment interval were retained, identifying 179{,}415{,}164 eligible demographic records.
-
-\textbf{Diagnosis table.} Patients were required to have at least one claim mapped to a diabetes-specific PhecodeX code: 
-\texttt{EM\_202} (type~2 diabetes mellitus), \texttt{EM\_202.1}, 
-\texttt{EM\_202.2}, or \texttt{BI\_181} (type~1 diabetes mellitus), 
-identifying 18{,}110{,}999 patients with a qualifying diagnosis.
-
-The inner join of all three tables yielded the final study cohort 
-of $N = 12{,}174{,}785$ patients meeting all criteria.
+The inner join of the three tables yielded a final study cohort of $N = 12{,}174{,}785$ patients.
 
 \paragraph{Outcome definition and risk-group assignment.}
-
-As diabetes diagnoses accumulate over time, the index date was defined as the date of each patient's earliest recorded diabetes diagnosis.
-PhecodeX codes \texttt{MS\_745.11} (fracture of femur) and \texttt{MS\_745.9} (pathological fracture) were used to identify patients with a hip fracture and the earliest hip fracture date was assigned as the outcome index date for each patient.
-
-We then split the target cohort into four mutually exclusive risk groups based on the number of days between the diabetes index date and the outcome index date. Patients with no fracture, a fracture predating the diabetes diagnosis, or a fracture more than ten years after the index date were consolidated into a single reference class, as hip fracture 
-is a rare event and a gap exceeding ten years makes a causal relationship with diabetes unlikely.
+For each patient, the date of the diabetes index $t_{\mathrm{DM}}$ was defined as the date of the first recorded diabetes diagnosis. The hip fracture was identified using the PhecodeX codes \texttt{MS\_745.11} (fracture of the femur) and \texttt{MS\_745.9} (pathological fracture); the date of the outcome index $t_{\mathrm{HF}}$ was the date of the first such code. Let $\Delta t = t_{\mathrm{HF}} - t_{\mathrm{DM}}$ (in days) be recorded when a fracture was recorded after the date of the index diabetes, and let $\Delta t = \infty$ be otherwise. The patients were assigned to one of the four mutually exclusive risk groups:
+\begin{equation}
+y =
+\begin{cases}
+1, & 1 \leq \Delta t \leq 365 \quad (<\!1\text{ year}), \\[2pt]
+2, & 366 \leq \Delta t \leq 1{,}825 \quad (1\text{--}5\text{ years}), \\[2pt]
+3, & 1{,}826 \leq \Delta t \leq 3{,}650 \quad (5\text{--}10\text{ years}), \\[2pt]
+0, & \text{otherwise (control).}
+\end{cases}
+\label{eq:risk-groups}
+\end{equation}
+Therefore, the control class aggregates patients without recorded fractures, fractures occurring on or before $t_{\mathrm{DM}}$, and fractures occurring more than ten years after $t_{\mathrm{DM}}$. We collapsed these into a single reference group because hip fracture is a rare outcome and a gap that exceeds ten years makes a causal relationship with diabetes biologically implausible. The cohort counts for each group are given in Table~\ref{tab:groups}.
 
 \begin{table}[h]
 \centering
@@ -118,199 +105,164 @@ is a rare event and a gap exceeding ten years makes a causal relationship with d
 \toprule
 Group & Label & Definition & $N$ \\
 \midrule
-0 & Control & No fracture recorded after the diabetes index date, 
-fracture occurring on or before the index date, or fracture more 
-than 10 years after the index date. & 12{,}055{,}663 \\
-1 & $<$1 year       & Hip fracture 1--365 days after diabetes index date & 37{,}646 \\
-2 & 1--5 years      & Hip fracture 366--1{,}825 days after diabetes index date & 58{,}478 \\
-3 & 5--10 years     & Hip fracture 1{,}826--3{,}650 days after diabetes index date & 22{,}998 \\
+0 & Control     & No fracture, fracture on or before the diabetes index date, or fracture $>$10 years after & 12{,}055{,}663 \\
+1 & $<$1 year   & Hip fracture 1--365 days after $t_{\mathrm{DM}}$ & 37{,}646 \\
+2 & 1--5 years  & Hip fracture 366--1{,}825 days after $t_{\mathrm{DM}}$ & 58{,}478 \\
+3 & 5--10 years & Hip fracture 1{,}826--3{,}650 days after $t_{\mathrm{DM}}$ & 22{,}998 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
 \subsection{All of Us Validation Cohort}
 
-The diabetes diagnosis and age criteria were applied to the All of Us CDR~v8 dataset (\texttt{C2024Q3R8}), yielding a validation cohort of 98{,}399 participants with a documented diabetes diagnosis and at least one EHR condition record. Continuous enrollment was not required, as All of Us is a prospective research cohort rather than an insurance claims database. 
-Analyses were conducted within the Researcher Workbench using BigQuery for cohort construction.
+The same diabetes diagnosis and minimum-age criteria were applied to the All of Us CDR dataset~v8 (\texttt{C2024Q3R8}), which produced a validation cohort of 98{,}399 participants with a documented diabetes diagnosis and at least one electronic health record (EHR) condition record. Continuous enrollment was not required, because All of Us is a prospective research cohort rather than an insurance claims dataset. All cohort construction was performed in BigQuery within the All of Us Researcher Workbench.
 
 %% ----------------------------------------------------------
 \subsection{Feature Representation}
 %% ----------------------------------------------------------
 
-\subsubsection{BEHRT: EHR Token Sequences}
+\subsubsection{BEHRT-LoRA: EHR Token Sequences}
 
-\paragraph{Code representation.}
-We started with raw ICD-9-CM and ICD-10-CM diagnosis codes from the MarketScan claims and mapped them to PhecodeX phenotypes. This mapping groups semantically related ICD codes into a single clinical phenotype label, reducing vocabulary size and improving generalization across code versions.
+\paragraph{Code mapping.}
+The raw diagnosis codes ICD-9-CM and ICD-10-CM were mapped to PhecodeX phenotypes~\citep{Shuey2023PhecodeX}, which group semantically related ICD codes into a single clinical concept. This mapping reduces vocabulary size and improves portability between ICD versions and between data sources.
 
 \paragraph{Sequence construction.}
-For each patient in the study cohort, all diagnosis events were sorted chronologically and restricted to those occurring before the hip fracture outcome index date. Hip fracture phenotypes (\texttt{MS\_745.11} and \texttt{MS\_745.9}) were excluded entirely to prevent outcome leakage in both control and fracture risk groups. Events occurring on the same calendar day were grouped into a single visit; a separator marker (\texttt{SEP}) was placed between 
-consecutive visits, and a final \texttt{SEP} was appended at the end of the record. Age at each event was computed by subtracting the patient's birth year from the calendar year of the event. Because sex does not vary over time, a single sex value was assigned uniformly across all positions in the sequence.
+For each patient, all diagnosis events were sorted chronologically and restricted to those that occurred strictly before $t_{\mathrm{HF}}$. The two phenotypes of hip-fracture (MS \texttt{\_745.11} and \texttt{MS\_745.9}) were excluded from the input sequence to prevent leakage of the outcome in both control and case patients. Events occurring on the same calendar day were grouped into a single visit; a separator token (\texttt{SEP}) was inserted between consecutive visits and appended at the end of each record. The age of each event was calculated as the difference between the calendar year of the event and the patient's birth year. Sex was treated as a static patient-level attribute and assigned uniformly across all positions in the sequence.
 
-\paragraph{Model input format.}
+\paragraph{Token vocabularies and embeddings.}
+Each input element in a patient's history, a diagnosis, an age, or a sex label, is referred to as a \textit{token}. Unlike a text corpus, an EHR sequence contains several heterogeneous token types, each drawn from its own vocabulary (Table~\ref{tab:vocabularies}).
 
-Each input value in a patient's history --- a diagnosis, an age at the time of diagnosis or a sex label --- is referred to as a \textit{token}. Unlike a text corpus, which contains only word tokens, a medical record contains several distinct token types. All tokens are assembled into \textit{vocabularies} as shown in Table~\ref{tab:vocabularies}.
 \begin{table}[h!]
 \centering
 \caption{Embedding vocabularies used as input to BEHRT-LoRA.}
 \label{tab:vocabularies}
-\begin{tabular}{p{2.5cm} p{3.5cm} p{3.5cm} r}
+\begin{tabular}{p{2.5cm} p{3.5cm} p{4.5cm} r}
 \toprule
 Vocabulary & Purpose & Construction & Size \\
 \midrule
-Phenotype & 
-Identifies the clinical diagnosis at each event & 
-All unique PhecodeX strings in the MarketScan training corpus, 
-plus five special tokens (\texttt{PAD}, \texttt{CLS}, \texttt{SEP}, 
-\texttt{MASK}, \texttt{UNK}) & 
+Phenotype &
+Identifies the clinical diagnosis at each event &
+Unique PhecodeX strings observed in the MarketScan training corpus, plus five special tokens (\texttt{PAD}, \texttt{CLS}, \texttt{SEP}, \texttt{MASK}, \texttt{UNK}) &
 3{,}309 \\[6pt]
-Age & 
-Records the patient's age at the time of each diagnosis event & 
-Integer ages from 0 to 119, mapped to whole-year bins, 
-plus \texttt{PAD} and \texttt{UNK} & 
+Age &
+Records the patient's age at each event &
+Integer ages 0--119, in whole-year bins, plus \texttt{PAD} and \texttt{UNK} &
 122 \\[6pt]
-Sex & 
-Records biological sex as a static patient-level attribute & 
-Three entries: male, female, and \texttt{PAD} & 
+Sex &
+Records biological sex as a static attribute &
+Three entries: male, female, and \texttt{PAD} &
 3 \\[6pt]
-Segment & 
-Marks which visit each diagnosis belongs to & 
-Two alternating values, toggling each time a visit 
-boundary (\texttt{SEP}) is crossed & 
+Segment &
+Marks which visit each diagnosis belongs to &
+Two alternating values, toggling at each visit boundary (\texttt{SEP}) &
 2 \\[6pt]
-Position & 
-Encodes the order of visits across the patient history & 
-One integer per visit, incrementing at each visit boundary 
-rather than at each individual diagnosis event & 
+Position &
+Encodes the order of visits across the patient history &
+One integer per visit, incremented at each visit boundary &
 512 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The transformer cannot process tokens in their raw form. It requires every input to be expressed as a fixed-length vector of real numbers. For every token in each vocabulary, the model therefore maintains one such vector, called an \textit{embedding}. When the 
-model encounters a token, it retrieves the corresponding embedding vector. These vectors are not 
-predefined; they are initialized randomly and adjusted during training so that tokens with similar clinical meaning converge to similar numeric representations.
+A transformer cannot operate on tokens directly; each token must be expressed as a fixed-length real-valued vector, called an \textit{embedding}. For every entry in each vocabulary, the model maintains one such vector. These vectors are not specified in advance; they are initialized randomly and updated during training so that tokens with similar clinical or contextual meaning come to occupy nearby regions of the embedding space.
 
-Two additional embeddings encode structural rather than clinical information. A \textit{segment embedding} tells the model which visit each diagnosis belongs to: its value alternates between distinct visits, so all diagnoses within the same visit share the 
-same segment value. A \textit{position embedding} tells the model the order of visits: it increments once per visit rather than once per diagnosis, so the model tracks the sequence of visits rather than the 
-sequence of individual events.
+Two embeddings encode structural rather than clinical information. The \textit{segment embedding} indicates which visit a diagnosis belongs to: it alternates between two values across visit boundaries, so that all diagnoses within the same visit share the same segment value. The \textit{position embedding} indicates the order of visits: it increments once per visit rather than once per diagnosis, so that the model attends to the sequence of visits rather than the sequence of individual codes.
 
-At each position in the sequence, all five embedding vectors --- phenotype, age, sex, segment, and position --- are summed into a single combined vector. The transformer then receives the full patient history as an ordered sequence of these combined per-event vectors.
+At each position $i$ in the sequence, the five embedding vectors are summed to form a single combined input vector:
+\begin{equation}
+\mathbf{e}_i \;=\; \mathbf{E}_{\mathrm{phen}}(p_i) + \mathbf{E}_{\mathrm{age}}(a_i) + \mathbf{E}_{\mathrm{sex}}(s_i) + \mathbf{E}_{\mathrm{seg}}(g_i) + \mathbf{E}_{\mathrm{pos}}(v_i),
+\label{eq:embedding-sum}
+\end{equation}
+where $p_i, a_i, s_i, g_i, v_i$ denote the phenotype, age, sex, segment, and position tokens at position $i$, and each $\mathbf{E}_{(\cdot)}$ is a learnable lookup table that maps a vocabulary index to a $d$-dimensional vector. The transformer encoder consumes the full patient history as the ordered sequence $(\mathbf{e}_1, \dots, \mathbf{e}_L)$.
+
 \paragraph{Sequence length and aggregation.}
-The transformer can only process 512 positions at once, a fixed architectural limit.
-When a patient's sequence exceeds that, the oldest events are dropped and only the most recent 511 are kept, on the assumption that recent clinical history is most predictive.
-One position is always reserved for a special \texttt{CLS} token prepended to the front of every sequence, hence 511 rather than 512.
-The \texttt{CLS} token has no clinical meaning; it acts as a collection point that the transformer uses to aggregate information from the entire sequence.
-By the time the sequence exits the transformer, the vector at the \texttt{CLS} position has attended to every other position and effectively summarizes the whole patient history.
+The encoder processes a maximum of 512 positions per patient, a fixed architectural limit~\citep{Devlin2019BERT}. The first position is reserved for a special \texttt{CLS} token prepended to every sequence; for patients with longer histories, the oldest events are truncated and only the most recent 511 events are retained, on the assumption that recent clinical history is most predictive of near-term outcomes. The \texttt{CLS} token has no clinical meaning. It functions as an aggregation point: by the final transformer layer, the vector at the \texttt{CLS} position has attended to every other position in the sequence and serves as a fixed-length summary of the entire patient history~\citep{Devlin2019BERT}. This vector is the input to the classification head.
 
-\subsubsection{XGBoost and Neural Network: One-Hot Encoded Feature Vectors}
+\subsubsection{XGBoost and Feedforward Neural Network: One-Hot Feature Vectors}
 
-For the gradient-boosted decision tree (XGBoost) and feedforward neural network models, each patient's clinical history was represented as a binary feature vector. No chronological information was preserved.
+For the gradient-boosted ensemble (XGBoost) and the feedforward neural network, each patient's clinical history was represented as a sparse binary feature vector; chronological information was not preserved.
 
-The feature space consisted of $N=$3{,}304 unique PhecodeX phenotypes observed across the MarketScan training cohort. 
-Each element in the vector served as a binary indicator, set to 1 if the corresponding phenotype was present in the patient's clinical record and 0 otherwise. 
-To prevent data leakage during learning, for patients in target groups, only phenotype codes recorded strictly before the date of the outcome index were included.
-For patients in the control group, no temporal restriction was applied.
-Furthermore, the target hip fracture phenotypes (\texttt{MS\_745.11} and \texttt{MS\_745.9}) were explicitly removed from the feature vocabulary for all patients.
-The resulting dataset comprised $N=$12{,}174{,}785 patient vectors. Given the sparsity of clinical claims data (matrix density approximately 1.22\%), the feature matrix was stored in Compressed Sparse Row (CSR) format.
+The feature space consisted of $K = 3,304$ unique PhecodeX phenotypes observed in the MarketScan training cohort. For each patient, the element $k$ of the vector was set to 1 if the phenotype $k$ appeared in the patient's record and 0 otherwise. To prevent outcome leakage, only phenotype codes recorded strictly before $t_{\mathrm{HF}}$ were included for case patients (groups~1--3); for control patients, no temporal restriction was applied. The two phenotypes of hip-fracture (MS \texttt{\_745.11} and \texttt{MS\_745.9}) were removed from the feature vocabulary of all patients. The resulting design matrix contained 12,174,785 rows and 3,304 columns, with a density of approximately 1.22\%, and was stored in Compressed Sparse Row (CSR) format for memory efficiency.
 
 %% ----------------------------------------------------------
-\subsection{Model Architectures}
+\subsection{Model Architectures and Training}
 %% ----------------------------------------------------------
 
 \subsubsection{BEHRT-LoRA}
 
-BEHRT (BERT for Electronic Health Records)~\cite{TODO_BEHRT} is a
-transformer encoder adapted from the original BERT architecture for medical claims data.
-The model was first pre-trained on the full MarketScan patient corpususing a masked language modelling (MLM) objective, and subsequently fine-tuned for four-class hip fracture risk prediction.
+BEHRT (BERT for Electronic Health Records)~\citep{Li2020BEHRT} is a transformer encoder adapted from the original BERT architecture~\citep{Devlin2019BERT,Vaswani2017Attention} for EHR data. Our implementation was first pre-trained on the full MarketScan corpus using a masked language-modeling (MLM) objective, and subsequently fine-tuned for four-class hip-fracture risk prediction.
 
 \paragraph{Encoder architecture.}
-The encoder follows the standard BERT design: a stack of transformer layers, each comprising multi-head self-attention followed by a position-wise feed-forward network, with residual connections and layer normalisation at each sub-layer. After the final transformer layer, the vector at the \texttt{CLS} position serves as a patient-level summary and is passed to the classification head to produce risk class probabilities.
+The encoder follows the standard BERT design: a stack of transformer blocks, each comprising multi-head self-attention followed by a position-wise feed-forward network, with residual connections and layer normalization at each sub-layer~\citep{Vaswani2017Attention}. After the final transformer layer, the vector at the \texttt{CLS} position is passed to a linear classification head that produces logits over the four risk classes.
 
-\paragraph{Hyperparameter optimization.}
-Architecture hyperparameters were selected using Bayesian optimisation (Optuna, TPE sampler, 30 trials) on a subset of 
-100{,}000 training patients over 5 epochs per trial. The search 
-ranges were: hidden dimension $\in \{128, 192, 256, 288, 384\}$; 
-number of layers 2--8; attention heads $\in \{4, 6, 8, 12\}$; 
-feed-forward intermediate dimension $\in \{256, 512, 768, 1{,}024\}$; 
-dropout 0.05--0.30; learning rate $10^{-5}$--$5 \times 10^{-4}$.
+\paragraph{Architecture hyperparameter optimization.}
+Architecture hyperparameters were selected by Bayesian optimization (Optuna~\citep{Akiba2019Optuna}, Tree-structured Parzen Estimator sampler, 30 trials), trained in a subset of 100{,}000 patients for five epochs per trial. The search space comprised: hidden dimension $d \in \{128, 192, 256, 288, 384\}$; number of layers in $\{2,\dots,8\}$; attention heads in $\{4, 6, 8, 12\}$; feed-forward intermediate dimension in $\{256, 512, 768, 1{,}024\}$; dropout in $[0.05, 0.30]$; and learning rate in $[10^{-5}, 5\times 10^{-4}]$.
 
 \paragraph{Pre-training.}
-
-The model was pre-trained on the MarketScan training corpus using the masked language modelling (MLM) objective. At each training step, 15\% of tokens in each sequence were randomly selected for prediction. Of these, 80\% were replaced with a \texttt{[MASK]} token, 10\% were replaced with a randomly drawn token from the 
-vocabulary, and 10\% were left unchanged. In all three cases, the model was trained to predict the original token. This mixed corruption strategy prevents the model from learning to attend only to masked positions, which would reduce the quality of representations at fine-tuning time when no masking is applied.
-Training used a 90/10 train/validation split, with up to 100 epochs and early stopping (patience 10 evaluations, with 4 evaluations per epoch). Training was distributed across 4 GPUs with an effective batch size of 1{,}024.
+The Pre-training used the MLM objective~\citep{Devlin2019BERT}: at each step, 15\% of the tokens in each sequence were randomly selected; of these, 80\% were replaced with \texttt{[MASK]}, 10\% with a random token drawn from the vocabulary, and 10\% were left unchanged. In all three cases the model was trained to predict the original token. This mixed corruption scheme prevents the model from learning representations that depend on the presence of the \texttt{[MASK]} symbol, which would otherwise degrade fine-tuning, where no masking is applied. Formally, given a sequence $\mathbf{x} = (x_1, \dots, x_L)$, a corrupted sequence $\tilde{\mathbf{x}}$, and the set of masked positions $\mathcal{M}$, the pre-training loss is
+\begin{equation}
+\mathcal{L}_{\mathrm{MLM}} \;=\; -\,\frac{1}{|\mathcal{M}|}\sum_{i \in \mathcal{M}} \log P_\theta\!\left(x_i \,\big|\, \tilde{\mathbf{x}}\right),
+\label{eq:mlm}
+\end{equation}
+where $P_\theta(\cdot \mid \tilde{\mathbf{x}})$ is the predicted distribution of the model over the phenotype vocabulary at position $i$. Pre-training used a 90/10 train/validation split, up to 100 epochs, and early stopping with patience of 10 evaluations (4 evaluations per epoch). Training was distributed across four GPUs with an effective batch size of 1{,}024.
 
 \paragraph{Fine-tuning with LoRA.}
-Following pre-training, the MLM prediction head was discarded and the BERT backbone was frozen.
-Low-Rank Adaptation (LoRA)~\cite{TODO_LoRA} was injected into the query and value projection matrices of every attention layer.
-LoRA replaces each target weight matrix $W$ with $W + BA$, where $B$ and $A$ are low-rank factors ($A \in \mathbb{R}^{r \times d}$, $B \in \mathbb{R}^{d \times r}$) initialized so that $BA = 0$ at the start of fine-tuning.
-Only $A$ and $B$ are updated during fine-tuning; the original $W$ is frozen.
-We used rank $r = 16$, scaling factor $\alpha = 32$ (effective scale $\alpha / r = 2.0$), and LoRA dropout of 0.1, resulting in approximately 1--2\% of total parameters being trainable.
-A linear classification head was appended to the frozen backbone and also trained.
-Fine-tuning used AdamW ($\text{lr} = 2 \times 10^{-4}$, weight decay 0.01) with a linear warmup over 10\% of training steps, gradient accumulation over 4 steps, and a class-weighted cross-entropy loss
-with weights inversely proportional to class frequency.
-Training ran for up to 50 epochs with early stopping (patience 10 epochs) on the held-out validation loss.
+After pre-training, the MLM prediction head was discarded and the BERT backbone was frozen. Low-Rank Adaptation (LoRA)~\citep{Hu2022LoRA} was injected into the query and value projection matrices of every layer of self-attention. LoRA replaces a frozen weight matrix $W_0 \in \mathbb{R}^{d \times d}$ with parameterization
+\begin{equation}
+W \;=\; W_0 + \Delta W \;=\; W_0 + \frac{\alpha}{r}\,B A,
+\qquad
+A \in \mathbb{R}^{r \times d},\ \ B \in \mathbb{R}^{d \times r},\ \ r \ll d,
+\label{eq:lora}
+\end{equation}
+where $A$ is initialized from a Gaussian and $B$ is initialized to zero, so that $\Delta W = 0$ at the start of fine-tuning and the model output is unchanged from the pre-trained baseline. Only $A$ and $B$ are updated during fine-tuning; $W_0$ remains frozen. Because $r \ll d$, the number of trainable parameters per adapted layer drops from $d^2$ to $2rd$, a substantial reduction. We used $r = 16$, $\alpha = 32$ (effective scale $\alpha/r = 2$), and a LoRA dropout of 0.1, which left approximately 1--2\% of the total model parameters trainable. A linear classification head was appended to the frozen backbone and trained jointly with the LoRA adapters.
+
+Fine-tuning used AdamW~\citep{Loshchilov2019AdamW} with learning rate $2\times 10^{-4}$, weight decay 0.01, linear warmup over the first 10\% of training steps and gradient accumulation over 4 steps. Class imbalance was addressed via a class-weighted cross-entropy loss with weights inversely proportional to class frequency:
+\begin{equation}
+\mathcal{L}_{\mathrm{CE}} \;=\; -\,\frac{1}{N}\sum_{n=1}^{N} w_{y_n}\, \log \hat{p}_{n,y_n},
+\qquad
+w_c \;\propto\; \frac{1}{N_c},\quad \sum_{c=0}^{C-1} w_c = C,
+\label{eq:weighted-ce}
+\end{equation}
+where $\hat{p}_{n,c}$ is the predicted probability that patient $n$ belongs to class $c$, $y_n \in \{0,\dots,C{-}1\}$ is the true label, $N_c$ is the number of training patients in class $c$, and $C = 4$. Training ran for up to 50 epochs, with early stopping (patience 10 epochs) based on validation loss.
 
 \subsubsection{XGBoost}
 
-A gradient-boosted decision tree ensemble was trained using XGBoost~\cite{TODO_XGBoost} on the sparse one-hot binary feature matrix. XGBoost builds an ensemble of decision trees sequentially, where each
-new tree is trained to correct the errors of the trees already in the ensemble; the final prediction is the weighted sum of all trees'
-outputs.
+A gradient-boosted decision tree ensemble was trained using XGBoost~\citep{Chen2016XGBoost}. XGBoost builds trees sequentially, with each new tree fitted to the gradient (and Hessian) of the loss with respect to the current ensemble's predictions; the final prediction is the sum of all trees' outputs passed through a softmax for multi-class classification.
 
 \paragraph{Class imbalance.}
-The training set contains approximately 99\% control patients and $<$1\% fracture cases across the three risk classes.
-To prevent the model from ignoring minority classes, the training set was downsampled so that the control class was capped at 600{,}000 patients (from over 10 million), and sample weights inversely proportional to class frequency were applied during training. The validation and test sets were left at their natural class distributions.
+The training cohort contained approximately 99\% controls and $<\!1\%$ patients in the three fracture classes combined. To prevent the model from collapsing to the majority class, we (i)~down-sampled the control class to 600{,}000 patients (from over 10 million) and (ii)~applied the class weighting scheme of Equation~\eqref{eq:weighted-ce} during training. Validation and test sets retained their natural class distributions to preserve unbiased estimates of generalization performance.
 
 \paragraph{Hyperparameter optimization.}
-Hyperparameters were selected using Optuna Bayesian optimisation (TPE sampler, 60 trials, 4 trials in parallel across 4 GPUs) with 5-fold stratified cross-validation on the downsampled training set.
-The objective minimised mean cross-entropy loss across folds. The best hyperparameter configuration found was:
-maximum tree depth~8; learning rate~0.282; subsampling ratio~0.924;
-column subsampling ratio~0.666; minimum child weight~11;
-$\gamma = 1.138$; $\alpha = 2 \times 10^{-6}$;
-$\lambda = 2.256$; histogram bin count~64.
-The final model was trained on the full downsampled training set
-using these parameters for 500 boosting rounds with early stopping
-on the validation set (patience~50 rounds).
+Hyperparameters were tuned with Optuna~\citep{Akiba2019Optuna} (TPE sampler, 60 trials, 4 trials in parallel across 4 GPUs) using 5-fold stratified cross-validation on the down-sampled training set; the objective was mean cross-entropy loss across folds. The selected configuration was: maximum tree depth~8; learning rate~0.282; row subsampling ratio~0.924; column subsampling ratio~0.666; minimum child weight~11; $\gamma = 1.138$; L1 regularization $\alpha = 2 \times 10^{-6}$; L2 regularization $\lambda = 2.256$; and 64 histogram bins. The final model was trained on the full down-sampled training set with these settings for up to 500 boosting rounds, with early stopping (patience 50 rounds) on the held-out validation set.
 
 \subsubsection{Feedforward Neural Network}
 
-A feedforward neural network (\texttt{SparseClassifier}) was trained on the same sparse one-hot feature matrix as XGBoost. The architecture takes a 3{,}304-dimensional sparse input and passes it through three fully connected hidden layers of dimensions 512, 256, and 128, each followed by batch normalization, ReLU activation, and dropout. The final linear layer maps the 128-dimensional hidden representation to four class logits, from which class probabilities are obtained via softmax.
+A feedforward neural network (\texttt{SparseClassifier}) was trained on the same sparse one-hot feature matrix as XGBoost. The architecture takes a 3{,}304-dimensional input and passes it through three fully connected hidden layers of dimensions 512, 256, and 128, each followed by batch normalization, a ReLU activation, and dropout. A final linear layer maps the 128-dimensional hidden representation to four class logits, from which class probabilities are obtained via the softmax function.
 
 \paragraph{Class imbalance.}
-The same downsampling strategy as XGBoost was applied: the control class was capped at 600{,}000 training patients, and a class-weighted cross-entropy loss was used, with weights inversely proportional to class frequency in the training set.
+We used the same strategy as for XGBoost: the control class was sampled down to 600{,}000 patients, and a class-weighted cross-entropy loss (Equation~\eqref{eq:weighted-ce}) was applied during training.
 
 \paragraph{Hyperparameter optimization.}
-Hyperparameters were selected using Optuna (TPE sampler, 30 trials) on a stratified subset of 150{,}000 training patients, with an 80/20
-train/validation split per trial and early stopping after 4 epochs without improvement.
-The tuned parameters were learning rate, weight decay, dropout rate, and batch size.
-The best configuration was: learning rate~$2.98 \times 10^{-4}$; weight decay~$9.59 \times 10^{-4}$; dropout~0.306; batch size~1{,}024.
-The final model was trained on the full downsampled training set using these hyperparameters for up to 60 epochs with early stopping (patience~10 epochs) based on validation cross-entropy loss.
-The AdamW optimiser was used with a \texttt{ReduceLROnPlateau}
-learning rate scheduler (factor~0.5, patience~3 epochs).
-
-
+Hyperparameters were selected with Optuna (TPE sampler, 30 trials)~\citep{Akiba2019Optuna} in a stratified subset of 150{,}000 training patients, using a split 80/20 train/validation per trial and early stopping after four epochs without improvement. The tuned parameters were learning rate, weight decay, dropout rate, and batch size. The selected configuration was: learning rate $2.98 \times 10^{-4}$; weight decay $9.59 \times 10^{-4}$; dropout 0.306; batch size 1{,}024. The final model was trained on the complete down-sampled training set with these settings for up to 60 epochs, using AdamW~\citep{Loshchilov2019AdamW} with a \texttt{ReduceLROnPlateau} scheduler (factor 0.5, patience 3 epochs) and early stopping on cross-entropy validation loss (patience 10 epochs).
 
 %% ----------------------------------------------------------
-\subsection{External Validation on All of Us}
+\subsection{External Validation in All of Us}
 %% ----------------------------------------------------------
 
-All three models trained on MarketScan were applied without modification to the All of Us validation cohort described. No model weights were updated during 
-validation. Data construction followed the same pipeline as MarketScan with adaptations disclosed below. 
+All three models trained in MarketScan were applied without modification to the All of Us validation cohort. The model weights were not updated during validation. The cohort and feature construction followed the same pipelines used for MarketScan, with the adaptations described below.
 
 \subsubsection{BEHRT-LoRA}
 
-Diagnosis sequences were constructed following the same procedure as MarketScan. ICD-to-PhecodeX mapping was executed in BigQuery over 123~million condition rows. To ensure that phenotype tokens mapped to the same embedding vectors as during MarketScan training, all All of Us sequences were encoded using the MarketScan-derived vocabulary. 
-PhecodeX phenotypes present in All of Us but absent from the MarketScan vocabulary were mapped to the \texttt{UNK} token.
+The diagnosis sequences were constructed using the same procedure as for MarketScan. The ICD-to-PhecodeX mapping was executed in BigQuery on approximately 123 million condition records. To ensure that phenotype tokens mapped to the same embedding vectors as during pre-training, all All of Us sequences were tokenized using the MarketScan-derived vocabulary; phenotypes present in All of Us but absent from the MarketScan vocabulary were mapped to the \texttt{UNK} token.
 
-Because transformer inference is substantially more expensive than scoring sparse feature vectors, BEHRT-LoRA was evaluated on a class-stratified random subsample of $N=50{,}000$ patients. 
-Stratified sampling preserved within-class proportions, keeping AUROC, AUPRC, and per-class metrics directly comparable with XGBoost and the neural network, which were evaluated on the full cohort of 98{,}249 patients.
+Because transformer inference is substantially more expensive than scoring sparse feature vectors, BEHRT-LoRA was evaluated in a random subsample stratified by class of $N = 50{,}000$ patients. Stratified sampling preserved within-class proportions, so AUROC, AUPRC, and per-class metrics remain directly comparable with those obtained from XGBoost and the neural network, which were evaluated in the full cohort of 98{,}249 patients.
 
-\subsubsection{XGBoost and Neural Network}
+\subsubsection{XGBoost and Feedforward Neural Network}
 
-A sparse binary feature matrix was constructed following the same procedure as MarketScan, restricted to the same 3{,}304 phecode columns used during training. The 146 phecodes present in All of Us but absent from the MarketScan feature set were discarded; columns with no All of Us representation were retained as all-zero vectors to preserve input dimensionality.
-
+A sparse binary feature matrix was constructed using the same procedure as for MarketScan, restricted to the same 3{,}304 PhecodeX columns used at training. The 146 PhecodeX phenotypes that appeared in All of Us but were absent from the MarketScan feature set were discarded; columns observed in MarketScan but not in All of Us were retained as all-zero vectors to preserve input dimensionality.
 
 % Bibliography
-\bibliographystyle{vancouver}  % or apalike, unsrt, etc.
-\bibliography{references}      % references.bib file
+\bibliographystyle{vancouver}
+\bibliography{references}
 
 \end{document}
