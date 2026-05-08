@@ -1,0 +1,633 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{adjustbox}
+\usepackage{makecell}
+\title{Figures for results on Marketscan data}
+\author{Anna Gerasimenko}
+\date{April 2026}
+\begin{document}
+\maketitle
+
+% --- Table: Class Distribution ---
+\begin{table}[h]
+\caption{Risk-class distribution in the full patient dataset and the stratified evaluation subsample ($N=50{,}000$). Class~0 ($>10$ years) dominates due to the rarity of near-term hip fracture; the subsample preserves the original proportions via stratified sampling (seed = 42).}
+\label{tab:class_distribution}
+\begin{tabular}{llllll}
+\toprule
+Class & Time to Fracture & Full Dataset (N) & Full (\%) & Eval Subsample (N) & Eval (\%) \\
+\midrule
+0 & $>$10 years & 12{,}053{,}173 & 99.0 & 49{,}512 & 99.0 \\
+1 & 1--5 years  & 58{,}599       & 0.5  & 241      & 0.5  \\
+2 & $<$1 year   & 37{,}371       & 0.3  & 153      & 0.3  \\
+3 & 5--10 years & 22{,}895       & 0.2  & 94       & 0.2  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- Table: Overall Performance Metrics ---
+\begin{table}
+\caption{BEHRT-LoRA overall performance on the held-out validation set ($N=50{,}000$, stratified subsample). Precision, Recall, and F1 are \textit{macro} averages (unweighted mean across all four classes), chosen because weighted averages are dominated by the 99\% majority class. ROC-AUC is the macro one-vs-rest area under the ROC curve.}
+\label{tab:overall_metrics}
+\begin{tabular}{lr}
+\toprule
+ & Score \\
+\midrule
+Accuracy & 0.9633 \\
+Precision & 0.3979 \\
+Recall & 0.8369 \\
+F1 & 0.4789 \\
+ROC-AUC & 0.9782 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Overall performance comparison of BEHRT-LoRA, XGBoost, and Neural Network models. Precision, Recall, and F1 are \textit{macro} averages (unweighted mean across all classes); ROC-AUC is the macro one-vs-rest area under the ROC curve.}
+\label{tab:overall_comparison}
+\begin{tabular}{lrrr}
+\toprule
+Metric & BEHRT-LoRA & XGBoost & NN \\
+\midrule
+Accuracy  & 0.9633 & 0.6857 & 0.5801 \\
+Precision & 0.3979 & 0.2583 & 0.2568 \\
+Recall    & 0.8369 & 0.4738 & 0.5094 \\
+F1        & 0.4789 & 0.2218 & 0.1986 \\
+ROC-AUC   & 0.9782 & 0.7640 & 0.7833 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% --- Table: Per-class Classification Report ---
+\begin{table}
+\caption{Per-class precision, recall, and F1-score for BEHRT-LoRA on the held-out validation set, with macro and weighted summary rows. Macro averages treat all classes equally and are the primary summary statistic given the severe class imbalance (99\% class~0).}
+\label{tab:classification_report}
+\begin{tabular}{lrrrr}
+\toprule
+ & Precision & Recall & F1-Score & Support \\
+\midrule
+$>$10 years (0) & 0.9991 & 0.9650 & 0.9817 & 49512 \\
+1–5 years (1) & 0.2348 & 0.7676 & 0.3596 & 241 \\
+$<$1 year (2) & 0.1158 & 0.8170 & 0.2029 & 153 \\
+5–10 years (3) & 0.2419 & 0.7979 & 0.3713 & 94 \\
+Macro avg & 0.3979 & 0.8369 & 0.4789 & 50000 \\
+Weighted avg & 0.9913 & 0.9633 & 0.9752 & 50000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Per-class precision, recall, and F1-score for BEHRT-LoRA, XGBoost, and Neural Network, 
+grouped by clinical risk category (time to fracture). 
+Class indices differ between models; rows are aligned by clinical meaning.
+BEHRT-LoRA was evaluated on a stratified 50K subsample; XGBoost and NN on the full test set ($N=1{,}217{,}479$).}
+\label{tab:perclass_comparison}
+\begin{tabular}{l rrr rrr rrr}
+\toprule
+ & \multicolumn{3}{c}{Precision} & \multicolumn{3}{c}{Recall} & \multicolumn{3}{c}{F1-Score} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+Time to Fracture & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN \\
+\midrule
+$>$10 years  & 0.9991 & 0.9957 & 0.9966 & 0.9650 & 0.6886 & 0.5816 & 0.9817 & 0.8141 & 0.7345 \\
+$<$1 year    & 0.1158 & 0.0099 & 0.0096 & 0.8170 & 0.4787 & 0.5478 & 0.2029 & 0.0195 & 0.0188 \\
+1--5 years   & 0.2348 & 0.0160 & 0.0131 & 0.7676 & 0.3538 & 0.2509 & 0.3596 & 0.0306 & 0.0248 \\
+5--10 years  & 0.2419 & 0.0118 & 0.0081 & 0.7979 & 0.3739 & 0.6574 & 0.3713 & 0.0228 & 0.0160 \\
+\midrule
+Macro avg    & 0.3979 & 0.2583 & 0.2568 & 0.8369 & 0.4738 & 0.5094 & 0.4789 & 0.2218 & 0.1986 \\
+Weighted avg & 0.9913 & 0.9861 & 0.9870 & 0.9633 & 0.6857 & 0.5801 & 0.9752 & 0.8064 & 0.7276 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- Table: Per-class Diagnostic Metrics ---
+\begin{table}
+\caption{Per-class diagnostic metrics for BEHRT-LoRA (one-vs-rest, hard argmax predictions, held-out validation set, $N=50{,}000$). TPR = true positive rate (sensitivity); FPR = false positive rate (fall-out); PPV = positive predictive value (precision); NPV = negative predictive value; PPR = predicted positive rate.}
+\label{tab:diagnostic_metrics}
+\begin{tabular}{lrrrrr}
+\toprule
+ & TPR & FPR & PPV & NPV & PPR \\
+Class &  &  &  &  &  \\
+\midrule
+$>$10 years (0) & 0.9650 & 0.0902 & 0.9991 & 0.2040 & 0.9565 \\
+1–5 years (1) & 0.7676 & 0.0121 & 0.2348 & 0.9989 & 0.0158 \\
+$<$1 year (2) & 0.8170 & 0.0191 & 0.1158 & 0.9994 & 0.0216 \\
+5–10 years (3) & 0.7979 & 0.0047 & 0.2419 & 0.9996 & 0.0062 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- Table: Per-class Diagnostic Metrics (All Models) ---
+\begin{table}
+\caption{Per-class diagnostic metrics for BEHRT-LoRA, XGBoost, and Neural Network 
+(one-vs-rest, hard argmax predictions), grouped by clinical risk category. 
+TPR = true positive rate (sensitivity); FPR = false positive rate (fall-out); 
+PPV = positive predictive value (precision); NPV = negative predictive value; 
+PPR = predicted positive rate. 
+BEHRT-LoRA evaluated on a stratified 50K subsample; XGBoost and NN on the full test set ($N=1{,}217{,}479$).}
+\label{tab:diagnostic_comparison}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l rrr rrr rrr rrr rrr}
+\toprule
+ & \multicolumn{3}{c}{TPR} & \multicolumn{3}{c}{FPR} & \multicolumn{3}{c}{PPV} & \multicolumn{3}{c}{NPV} & \multicolumn{3}{c}{PPR} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13} \cmidrule(lr){14-16}
+Time to Fracture & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN \\
+\midrule
+$>$10 years  & 0.9650 & 0.6886 & 0.5816 & 0.0902 & 0.3020 & 0.1995 & 0.9991 & 0.9957 & 0.9966 & 0.2040 & 0.0217 & 0.0186 & 0.9565 & 0.6848 & 0.5779 \\
+$<$1 year    & 0.8170 & 0.4787 & 0.5478 & 0.0191 & 0.1480 & 0.1757 & 0.1158 & 0.0099 & 0.0096 & 0.9994 & 0.9981 & 0.9983 & 0.0216 & 0.1490 & 0.1769 \\
+1--5 years   & 0.7676 & 0.3538 & 0.2509 & 0.0121 & 0.1049 & 0.0916 & 0.2348 & 0.0160 & 0.0131 & 0.9989 & 0.9965 & 0.9960 & 0.0158 & 0.1061 & 0.0923 \\
+5--10 years  & 0.7979 & 0.3739 & 0.6574 & 0.0047 & 0.0595 & 0.1520 & 0.2419 & 0.0118 & 0.0081 & 0.9996 & 0.9987 & 0.9992 & 0.0062 & 0.0601 & 0.1530 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+
+% --- Table: Raw Confusion Counts (All Models) ---
+\begin{table}
+\caption{Raw confusion counts per risk class for BEHRT-LoRA, XGBoost, and Neural Network 
+(one-vs-rest, hard argmax predictions), grouped by clinical risk category. 
+BEHRT-LoRA evaluated on a stratified 50K subsample; XGBoost and NN on the full test set ($N=1{,}217{,}479$).}
+\label{tab:confusion_counts_comparison}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l rrrr rrrr rrrr}
+\toprule
+ & \multicolumn{4}{c}{BEHRT-LoRA} & \multicolumn{4}{c}{XGBoost} & \multicolumn{4}{c}{Neural Network} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+Time to Fracture & TP & FP & TN & FN & TP & FP & TN & FN & TP & FP & TN & FN \\
+\midrule
+$>$10 years  & 47779 & 44 & 444 & 1733 & 830117 & 3597 & 8315 & 375450 & 701163 & 2376 & 9536 & 504404 \\
+$<$1 year    & 125 & 954 & 48893 & 28 & 1802 & 179660 & 1034055 & 1962 & 2062 & 213252 & 1000463 & 1702 \\
+1--5 years   & 185 & 603 & 49156 & 56 & 2069 & 127095 & 1084536 & 3779 & 1467 & 110929 & 1100702 & 4381 \\
+5--10 years  & 75 & 235 & 49671 & 19 & 860 & 72279 & 1142900 & 1440 & 1512 & 184718 & 1030461 & 788 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+
+% --- Table: Raw Confusion Counts ---
+\begin{table}
+\caption{Raw confusion counts per risk class for BEHRT-LoRA (one-vs-rest, hard argmax predictions, held-out validation set, $N=50{,}000$). TP = true positives; FP = false positives; TN = true negatives; FN = false negatives.}
+\label{tab:confusion_counts}
+\begin{tabular}{lrrrr}
+\toprule
+ & TP & FP & TN & FN \\
+Class &  &  &  &  \\
+\midrule
+$>$10 years (0) & 47779 & 44 & 444 & 1733 \\
+1–5 years (1) & 185 & 603 & 49156 & 56 \\
+$<$1 year (2) & 125 & 954 & 48893 & 28 \\
+5–10 years (3) & 75 & 235 & 49671 & 19 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- Table: Brier Score Summary ---
+\begin{table}
+\caption{Brier score per risk class for BEHRT-LoRA (raw softmax probabilities, no calibration). The baseline Brier score corresponds to a classifier that always predicts the class prevalence. Lower values indicate better-calibrated probability estimates.}
+\label{tab:brier_summary}
+\begin{tabular}{lrrr}
+\toprule
+ & Brier Score & Baseline Brier & Prevalence \\
+Class &  &  &  \\
+\midrule
+$>$10 years (0) & 0.03173 & 0.00966 & 0.99024 \\
+1–5 years (1) & 0.01142 & 0.00480 & 0.00482 \\
+$<$1 year (2) & 0.01536 & 0.00305 & 0.00306 \\
+5–10 years (3) & 0.00397 & 0.00188 & 0.00188 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Brier score per risk class for BEHRT-LoRA, XGBoost, and Neural Network 
+(raw softmax/softprob probabilities, no calibration), grouped by clinical risk category. 
+The baseline Brier score corresponds to a classifier that always predicts the class prevalence. 
+Lower values indicate better-calibrated probability estimates.}
+\label{tab:brier_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l rrr r r}
+\toprule
+ & \multicolumn{3}{c}{Brier Score} & & \\
+\cmidrule(lr){2-4}
+Time to Fracture & BEHRT & XGB & NN & Baseline Brier & Prevalence \\
+\midrule
+$>$10 years  & 0.03173 & 0.30356 & 0.37754 & 0.00969 & 0.990 \\
+$<$1 year    & 0.01536 & 0.07211 & 0.08560 & 0.00308 & 0.003 \\
+1--5 years   & 0.01142 & 0.05669 & 0.05114 & 0.00478 & 0.005 \\
+5--10 years  & 0.00397 & 0.03138 & 0.05311 & 0.00189 & 0.002 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+% --- Table: Brier Score Comparison (Raw vs Platt vs Isotonic) ---
+\begin{table}
+\caption{Brier score comparison across calibration methods per risk class (calibration-test split, 30\% of the evaluation set). Raw = uncorrected softmax probabilities; Platt = logistic-regression scaling; Isotonic = isotonic-regression mapping. Lower is better.}
+\label{tab:brier_comparison}
+\begin{tabular}{lrrr}
+\toprule
+ & Brier (Raw) & Brier (Platt) & Brier (Isotonic) \\
+Class &  &  &  \\
+\midrule
+$>$10 years (0) & 0.03128 & 0.00457 & 0.00248 \\
+1–5 years (1) & 0.01159 & 0.00296 & 0.00272 \\
+$<$1 year (2) & 0.01519 & 0.00219 & 0.00167 \\
+5–10 years (3) & 0.00397 & 0.00118 & 0.00111 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Brier score comparison across calibration methods per risk class for BEHRT-LoRA, XGBoost, and Neural Network 
+(calibration-test split, 30\% of the evaluation set), grouped by clinical risk category. 
+Raw = uncorrected softmax/softprob probabilities; Platt = logistic-regression scaling; 
+Isotonic = isotonic-regression mapping. Lower is better.}
+\label{tab:brier_calibration_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l rrr rrr rrr}
+\toprule
+ & \multicolumn{3}{c}{Brier (Raw)} & \multicolumn{3}{c}{Brier (Platt)} & \multicolumn{3}{c}{Brier (Isotonic)} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+Time to Fracture & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN \\
+\midrule
+$>$10 years  & 0.03128 & 0.30397 & 0.37774 & 0.00457 & 0.00948 & 0.00948 & 0.00248 & 0.00940 & 0.00942 \\
+$<$1 year    & 0.01519 & 0.07247 & 0.08591 & 0.00219 & 0.00306 & 0.00306 & 0.00167 & 0.00306 & 0.00306 \\
+1--5 years   & 0.01159 & 0.05671 & 0.05121 & 0.00296 & 0.00476 & 0.00476 & 0.00272 & 0.00476 & 0.00476 \\
+5--10 years  & 0.00397 & 0.03119 & 0.05287 & 0.00118 & 0.00188 & 0.00188 & 0.00111 & 0.00188 & 0.00188 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+
+% --- Table: Bootstrapped Per-class Metrics (mean [95% CI]) ---
+% Macro ROC-AUC (all classes): 0.9782 [0.9718, 0.9835]
+\begin{table}[h]
+\caption{Bootstrapped per-class performance metrics ($N=1{,}000$ iterations, 95\% CI). Each cell reports the mean and 95\% confidence interval. AUPRC = area under the precision-recall curve (raw probabilities); Brier = Brier score (isotonic-calibrated probabilities); TPR = sensitivity; FPR = fall-out; PPV = positive predictive value; NPV = negative predictive value. Macro-average ROC-AUC (one-vs-rest): 0.9782 [0.9718, 0.9835].}
+\label{tab:bootstrap_metrics}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lllllll}
+\toprule
+Risk Class & AUPRC & Brier & TPR & FPR & PPV & NPV \\
+\midrule
+$>$10 years (0) & 0.9996 [0.9995, 0.9998] & 0.0026 [0.0022, 0.0030] & 0.9650 [0.9635, 0.9666] & 0.0906 [0.0650, 0.1167] & 0.9991 [0.9988, 0.9993] & 0.2044 [0.1878, 0.2212] \\
+1--5 years (1) & 0.6307 [0.5702, 0.6869] & 0.0025 [0.0021, 0.0029] & 0.7667 [0.7113, 0.8198] & 0.0121 [0.0112, 0.0131] & 0.2348 [0.2051, 0.2643] & 0.9989 [0.9985, 0.9991] \\
+$<$1 year (2)   & 0.6329 [0.5573, 0.7005] & 0.0015 [0.0013, 0.0019] & 0.8158 [0.7550, 0.8741] & 0.0191 [0.0179, 0.0203] & 0.1161 [0.0980, 0.1357] & 0.9994 [0.9992, 0.9996] \\
+5--10 years (3) & 0.6234 [0.5222, 0.7253] & 0.0010 [0.0008, 0.0012] & 0.7988 [0.7128, 0.8817] & 0.0047 [0.0041, 0.0053] & 0.2431 [0.1987, 0.2895] & 0.9996 [0.9994, 0.9998] \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% --- Table: Per-class Bootstrapped ROC-AUC ---
+\begin{table}
+\caption{Per-class one-vs-rest ROC-AUC for BEHRT-LoRA ($N=1{,}000$ bootstrap iterations, 95\% CI). Each class is treated as positive against all remaining classes.}
+\label{tab:roc_auc_per_class}
+\begin{tabular}{lrrr}
+\toprule
+ & Mean AUC & 95\% CI Lower & 95\% CI Upper \\
+Risk Class &  &  &  \\
+\midrule
+$>$10 years (0) & 0.9733 & 0.9636 & 0.9829 \\
+1–5 years (1) & 0.9685 & 0.9565 & 0.9796 \\
+$<$1 year (2) & 0.9789 & 0.9699 & 0.9865 \\
+5–10 years (3) & 0.9917 & 0.9835 & 0.9972 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{table}
+\caption{Bootstrapped per-class performance metrics for BEHRT-LoRA, XGBoost, and Neural Network 
+(95\% CI), grouped by clinical risk category. 
+BEHRT-LoRA: $N=1{,}000$ iterations; XGBoost and NN: $N=500$ iterations. 
+ROC-AUC = one-vs-rest area under the ROC curve; 
+AUPRC = area under the precision-recall curve (raw probabilities); 
+Brier = Brier score (isotonic-calibrated); TPR = sensitivity.}
+\label{tab:bootstrap_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l lll lll lll lll}
+\toprule
+ & \multicolumn{3}{c}{ROC-AUC} & \multicolumn{3}{c}{AUPRC} & \multicolumn{3}{c}{Brier (Isotonic)} & \multicolumn{3}{c}{TPR} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+Time to Fracture & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN \\
+\midrule
+$>$10 yrs & \makecell[l]{0.973\\{[.964,.983]}} & \makecell[l]{0.764\\{[.746,.781]}} & \makecell[l]{0.783\\{[.770,.799]}} & \makecell[l]{1.000\\{[1.00,1.00]}} & \makecell[l]{0.996\\{[.995,.996]}} & \makecell[l]{0.997\\{[.996,.997]}} & \makecell[l]{.003\\{[.002,.003]}} & \makecell[l]{.009\\{[.009,.010]}} & \makecell[l]{.009\\{[.009,.010]}} & \makecell[l]{0.965\\{[.964,.967]}} & \makecell[l]{0.690\\{[.687,.693]}} & \makecell[l]{0.581\\{[.578,.584]}} \\
+$<$1 yr & \makecell[l]{0.979\\{[.970,.987]}} & \makecell[l]{0.738\\{[.708,.767]}} & \makecell[l]{0.753\\{[.723,.781]}} & \makecell[l]{0.633\\{[.557,.701]}} & \makecell[l]{0.015\\{[.011,.020]}} & \makecell[l]{0.016\\{[.011,.021]}} & \makecell[l]{.002\\{[.001,.002]}} & \makecell[l]{.003\\{[.003,.003]}} & \makecell[l]{.003\\{[.003,.003]}} & \makecell[l]{0.816\\{[.755,.874]}} & \makecell[l]{0.506\\{[.449,.563]}} & \makecell[l]{0.563\\{[.508,.616]}} \\
+1--5 yrs & \makecell[l]{0.969\\{[.957,.980]}} & \makecell[l]{0.728\\{[.704,.753]}} & \makecell[l]{0.735\\{[.713,.757]}} & \makecell[l]{0.631\\{[.570,.687]}} & \makecell[l]{0.017\\{[.014,.022]}} & \makecell[l]{0.018\\{[.014,.023]}} & \makecell[l]{.003\\{[.002,.003]}} & \makecell[l]{.005\\{[.004,.005]}} & \makecell[l]{.005\\{[.004,.005]}} & \makecell[l]{0.767\\{[.711,.820]}} & \makecell[l]{0.352\\{[.308,.394]}} & \makecell[l]{0.251\\{[.216,.292]}} \\
+5--10 yrs & \makecell[l]{0.992\\{[.984,.997]}} & \makecell[l]{0.823\\{[.793,.850]}} & \makecell[l]{0.866\\{[.843,.887]}} & \makecell[l]{0.623\\{[.522,.725]}} & \makecell[l]{0.017\\{[.010,.027]}} & \makecell[l]{0.015\\{[.011,.022]}} & \makecell[l]{.001\\{[.001,.001]}} & \makecell[l]{.002\\{[.002,.002]}} & \makecell[l]{.002\\{[.002,.002]}} & \makecell[l]{0.799\\{[.713,.882]}} & \makecell[l]{0.381\\{[.316,.445]}} & \makecell[l]{0.663\\{[.598,.731]}} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+
+\subsection*{External Replication on the All of Us Research Program Cohort}
+
+To assess generalizability beyond the training distribution, the BEHRT-LoRA model trained on MarketScan was evaluated without retraining on a held-out validation set drawn from the All of Us Research Program ($N = 50{,}000$). The All of Us cohort differs from MarketScan in its recruitment strategy, demographic composition, and data collection infrastructure, making it a stringent test of cross-cohort transferability. The four risk classes are: Class~0 ($>$10 years to fracture), Class~1 (1--5 years), Class~2 ($<$1 year), and Class~3 (5--10 years). Class distribution in the All of Us sample closely mirrors MarketScan (Class~0: 99.25\%; Class~1: 0.37\%; Class~2: 0.13\%; Class~3: 0.26\%), reflecting the rarity of near-term hip fracture in the general population. Bootstrapped confidence intervals are based on $N=1{,}000$ resampling iterations. Overall accuracy and ROC-AUC remain comparable to MarketScan results (Tables~\ref{tab:aou_overall}--\ref{tab:aou_roc_auc}), while minority-class precision is lower, consistent with the distribution shift between cohorts.
+
+% --- Table 0: Full Cohort Class Distribution ---
+\begin{table}[h]
+\caption{Risk-class distribution in the full All of Us patient dataset ($N=338{,}857$). Class~0 ($>$10 years) dominates due to the rarity of near-term hip fracture. The held-out validation subsample ($N=50{,}000$) preserves these proportions via stratified sampling.}
+\label{tab:aou_class_distribution}
+\begin{tabular}{llrr}
+\toprule
+Class & Time to Fracture & N & \% \\
+\midrule
+0 & $>$10 years & 336{,}313 & 99.25 \\
+1 & 1--5 years  &   1{,}247 &  0.37 \\
+2 & $<$1 year   &     430   &  0.13 \\
+3 & 5--10 years &     867   &  0.26 \\
+\midrule
+  & Total       & 338{,}857 & 100.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- Table 1: Overall Metrics ---
+\begin{table}[h]
+\caption{Overall performance metrics on the All of Us held-out validation set ($N=50{,}000$). Precision, Recall, and F1 are macro-weighted averages across all classes; ROC-AUC is the macro one-vs-rest area under the receiver operating characteristic curve. Cf.\ MarketScan results: Accuracy 0.9633, Precision 0.9913, Recall 0.9633, F1 0.9752, ROC-AUC 0.9782.}
+\label{tab:aou_overall}
+\begin{tabular}{lr}
+\toprule
+Metric & Score \\
+\midrule
+Accuracy  & 0.9704 \\
+Precision & 0.3500 \\
+Recall    & 0.6848 \\
+F1        & 0.4046 \\
+ROC-AUC   & 0.9616 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Comparison Table
+\begin{table}
+\caption{Overall performance comparison of BEHRT-LoRA, XGBoost, and Neural Network 
+on the All of Us held-out test set. 
+Precision, Recall, and F1 are \textit{macro} averages (unweighted mean across all four classes); 
+ROC-AUC is the macro one-vs-rest area under the ROC curve. 
+BEHRT-LoRA evaluated on a stratified 50K subsample; XGBoost and NN on the full test set ($N=1{,}217{,}479$).}
+\label{tab:aou_overall_comparison}
+\begin{tabular}{lrrr}
+\toprule
+Metric & BEHRT-LoRA & XGBoost & NN \\
+\midrule
+Accuracy  & 0.9704 & 0.7374 & 0.4057 \\
+Precision & 0.3500 & 0.2669 & 0.2633 \\
+Recall    & 0.6848 & 0.3955 & 0.4282 \\
+F1        & 0.4046 & 0.2496 & 0.1714 \\
+ROC-AUC   & 0.9616 & 0.7146 & 0.7352 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- Table 2: Classification Report ---
+\begin{table}[h]
+\caption{Per-class classification report on the All of Us validation set. Support reflects the All of Us class distribution ($N=50{,}000$): Class~0 = 49{,}625 (99.25\%), Class~1 = 184 (0.37\%), Class~2 = 63 (0.13\%), Class~3 = 128 (0.26\%).}
+\label{tab:aou_classification_report}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lrrrr}
+\toprule
+Risk Class & Precision & Recall & F1-Score & Support \\
+\midrule
+$>$10 years (0) & 0.9986 & 0.9736 & 0.9860 & 49{,}625 \\
+1--5 years (1)  & 0.1377 & 0.4728 & 0.2132 &    184   \\
+$<$1 year (2)   & 0.0763 & 0.7302 & 0.1381 &     63   \\
+5--10 years (3) & 0.1875 & 0.5625 & 0.2812 &    128   \\
+\midrule
+Macro avg    & 0.3500 & 0.6848 & 0.4046 & 50{,}000 \\
+Weighted avg & 0.9922 & 0.9704 & 0.9802 & 50{,}000 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% Class comparison between different models
+
+\begin{table}
+\caption{Per-class precision, recall, and F1-score for BEHRT-LoRA, XGBoost, and Neural Network 
+on the All of Us held-out test set, grouped by clinical risk category. 
+BEHRT-LoRA evaluated on a stratified 50K subsample; XGBoost and NN on the full test set ($N=98{,}249$).}
+\label{tab:aou_perclass_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l rrr rrr rrr}
+\toprule
+ & \multicolumn{3}{c}{Precision} & \multicolumn{3}{c}{Recall} & \multicolumn{3}{c}{F1-Score} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+Time to Fracture & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN \\
+\midrule
+$>$10 years  & 0.9986 & 0.9859 & 0.9925 & 0.9736 & 0.7491 & 0.4064 & 0.9860 & 0.8514 & 0.5767 \\
+$<$1 year    & 0.0763 & 0.0179 & 0.0125 & 0.7302 & 0.2721 & 0.5070 & 0.1381 & 0.0337 & 0.0244 \\
+1--5 years   & 0.1377 & 0.0352 & 0.0326 & 0.4728 & 0.3937 & 0.1604 & 0.2132 & 0.0646 & 0.0542 \\
+5--10 years  & 0.1875 & 0.0286 & 0.0156 & 0.5625 & 0.1672 & 0.6390 & 0.2812 & 0.0489 & 0.0305 \\
+\midrule
+Macro avg    & 0.3500 & 0.2669 & 0.2633 & 0.6848 & 0.3955 & 0.4282 & 0.4046 & 0.2496 & 0.1714 \\
+Weighted avg & 0.9922 & 0.9612 & 0.9675 & 0.9704 & 0.7374 & 0.4057 & 0.9802 & 0.8307 & 0.5628 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+% --- Table 3: Diagnostic Metrics ---
+\begin{table}[h]
+\caption{Per-class diagnostic metrics on the All of Us validation set. TPR = true positive rate (sensitivity); FPR = false positive rate (fall-out); PPV = positive predictive value (precision); NPV = negative predictive value; PPR = predicted positive rate (fraction of samples assigned to each class).}
+\label{tab:aou_diagnostic}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lrrrrr}
+\toprule
+Risk Class & TPR & FPR & PPV & NPV & PPR \\
+\midrule
+$>$10 years (0) & 0.9736 & 0.1760 & 0.9986 & 0.1909 & 0.9676 \\
+1--5 years (1)  & 0.4728 & 0.0109 & 0.1377 & 0.9980 & 0.0126 \\
+$<$1 year (2)   & 0.7302 & 0.0112 & 0.0763 & 0.9997 & 0.0121 \\
+5--10 years (3) & 0.5625 & 0.0063 & 0.1875 & 0.9989 & 0.0077 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% --- LaTeX Table: Raw Confusion Counts ---
+\begin{table}
+\caption{Raw confusion counts per risk class on the All of Us validation set, hard argmax predictions, held-out validation set, $N=50{,}000$). TP = true positives; FP = false positives; TN = true negatives; FN = false negatives.}
+
+\begin{tabular}{lrrrr}
+
+\toprule
+ & TP & FP & TN & FN \\
+Class &  &  &  &  \\
+\midrule
+>10 years (0) & 48315 & 66 & 309 & 1310 \\
+1-5 years (1) & 87 & 545 & 49271 & 97 \\
+<1 year (2) & 46 & 557 & 49380 & 17 \\
+5-10 years (3) & 72 & 312 & 49560 & 56 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Comparison Tables
+
+% --- Table: Per-class Diagnostic Metrics (All Models, All of Us) ---
+\begin{table}
+\caption{Per-class diagnostic metrics for BEHRT-LoRA, XGBoost, and Neural Network 
+on the All of Us held-out test set (one-vs-rest, hard argmax predictions), grouped by clinical risk category. 
+TPR = sensitivity; FPR = fall-out; PPV = precision; NPV = negative predictive value; PPR = predicted positive rate.
+BEHRT-LoRA evaluated on a stratified 50K subsample; XGBoost and NN on the full test set ($N=98{,}249$).}
+\label{tab:aou_diagnostic_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l rrr rrr rrr rrr rrr}
+\toprule
+ & \multicolumn{3}{c}{TPR} & \multicolumn{3}{c}{FPR} & \multicolumn{3}{c}{PPV} & \multicolumn{3}{c}{NPV} & \multicolumn{3}{c}{PPR} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13} \cmidrule(lr){14-16}
+Time to Fracture & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN \\
+\midrule
+$>$10 years  & 0.9736 & 0.7491 & 0.4064 & 0.1760 & 0.4025 & 0.1148 & 0.9986 & 0.9859 & 0.9925 & 0.1909 & 0.0595 & 0.0381 & 0.9676 & 0.7401 & 0.3988 \\
+$<$1 year    & 0.7302 & 0.2721 & 0.5070 & 0.0112 & 0.0655 & 0.1760 & 0.0763 & 0.0179 & 0.0125 & 0.9997 & 0.9966 & 0.9974 & 0.0121 & 0.0664 & 0.1774 \\
+1--5 years   & 0.4728 & 0.3937 & 0.1604 & 0.0109 & 0.1387 & 0.0612 & 0.1377 & 0.0352 & 0.0326 & 0.9980 & 0.9910 & 0.9886 & 0.0126 & 0.1420 & 0.0625 \\
+5--10 years  & 0.5625 & 0.1672 & 0.6390 & 0.0063 & 0.0505 & 0.3588 & 0.1875 & 0.0286 & 0.0156 & 0.9989 & 0.9923 & 0.9950 & 0.0077 & 0.0515 & 0.3613 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+
+% --- Table: Raw Confusion Counts (All Models, All of Us) ---
+\begin{table}
+\caption{Raw confusion counts per risk class for BEHRT-LoRA, XGBoost, and Neural Network 
+on the All of Us held-out test set (one-vs-rest, hard argmax predictions), grouped by clinical risk category. 
+BEHRT-LoRA: $N=50{,}000$; XGBoost and NN: $N=98{,}249$.}
+\label{tab:aou_counts_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l rrrr rrrr rrrr}
+\toprule
+ & \multicolumn{4}{c}{BEHRT-LoRA} & \multicolumn{4}{c}{XGBoost} & \multicolumn{4}{c}{Neural Network} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+Time to Fracture & TP & FP & TN & FN & TP & FP & TN & FN & TP & FP & TN & FN \\
+\midrule
+$>$10 years  & 48315 & 66 & 309 & 1310 & 71694 & 1024 & 1520 & 24011 & 38892 & 292 & 2252 & 56813 \\
+$<$1 year    & 46 & 557 & 49380 & 17 & 117 & 6403 & 91416 & 313 & 218 & 17216 & 80603 & 212 \\
+1--5 years   & 87 & 545 & 49271 & 97 & 491 & 13458 & 83544 & 756 & 200 & 5937 & 91065 & 1047 \\
+5--10 years  & 72 & 312 & 49560 & 56 & 145 & 4917 & 92465 & 722 & 554 & 34940 & 62442 & 313 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+% --- Table 4: Brier Score Comparison ---
+\begin{table}[h]
+\centering
+\caption{Brier score per risk class for BEHRT-LoRA on All of Us (raw softmax probabilities, no calibration). The baseline Brier score corresponds to a classifier that always predicts the class prevalence. Lower values indicate better-calibrated probability estimates.}
+\label{tab:brier_summary_aou}
+\begin{tabular}{lrrr}
+\toprule
+Risk Class & Brier Score & Baseline Brier & Prevalence \\
+\midrule
+$>$10 years (0) & 0.02475 & 0.00744 & 0.99250 \\
+1-5 years (1) & 0.00856 & 0.00367 & 0.00368 \\
+$<$1 year (2) & 0.00895 & 0.00126 & 0.00126 \\
+5-10 years (3) & 0.00493 & 0.00255 & 0.00256 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\caption{Per-class Brier scores on the All of Us validation set under three probability calibration methods: raw (uncalibrated) model output, Platt scaling, and isotonic regression. Lower values indicate better probabilistic calibration.}
+\label{tab:aou_brier}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lrrr}
+\toprule
+Risk Class & Brier (Raw) & Brier (Platt) & Brier (Isotonic) \\
+\midrule
+$>$10 years (0) & 0.02475 & 0.00581 & 0.00509 \\
+1--5 years (1)  & 0.00817 & 0.00328 & 0.00322 \\
+$<$1 year (2)   & 0.00942 & 0.00119 & 0.00114 \\
+5--10 years (3) & 0.00450 & 0.00201 & 0.00200 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+% Comparison Tables
+
+% --- Table 1: Brier Score (Raw) with Baseline ---
+\begin{table}
+\caption{Brier score per risk class for BEHRT-LoRA, XGBoost, and Neural Network 
+on the All of Us test set (raw softmax/softprob probabilities, no calibration), 
+grouped by clinical risk category. 
+Baseline Brier $= p(1-p)$ for class prevalence $p$. Lower is better. 
+BEHRT-LoRA evaluated on a stratified 50K subsample; XGBoost and NN on the full test set ($N=98{,}249$).}
+\label{tab:aou_brier_raw_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l rrr r r}
+\toprule
+ & \multicolumn{3}{c}{Brier Score} & & \\
+\cmidrule(lr){2-4}
+Time to Fracture & BEHRT & XGB & NN & Baseline Brier & Prevalence \\
+\midrule
+$>$10 years  & 0.02475 & 0.22193 & 0.44988 & 0.00744 & 0.992 \\
+$<$1 year    & 0.00895 & 0.03756 & 0.08126 & 0.00126 & 0.001 \\
+1--5 years   & 0.00856 & 0.08027 & 0.04602 & 0.00367 & 0.004 \\
+5--10 years  & 0.00493 & 0.03478 & 0.13243 & 0.00255 & 0.003 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+
+% --- Table 2: Brier Score across Calibration Methods ---
+\begin{table}
+\caption{Brier score comparison across calibration methods per risk class for BEHRT-LoRA, XGBoost, and Neural Network 
+on the All of Us test set (calibration-test split, 30\% of the evaluation set), grouped by clinical risk category. 
+Raw = uncorrected probabilities; Platt = logistic-regression scaling; Isotonic = isotonic-regression mapping. Lower is better.}
+\label{tab:aou_brier_calibration_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l rrr rrr rrr}
+\toprule
+ & \multicolumn{3}{c}{Brier (Raw)} & \multicolumn{3}{c}{Brier (Platt)} & \multicolumn{3}{c}{Brier (Isotonic)} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+Time to Fracture & BEHRT & XGB & NN & BEHRT & XGB & NN & BEHRT & XGB & NN \\
+\midrule
+$>$10 years  & 0.02475 & 0.22089 & 0.44991 & 0.00581 & 0.02452 & 0.02435 & 0.00509 & 0.02442 & 0.02421 \\
+$<$1 year    & 0.00942 & 0.03677 & 0.08008 & 0.00119 & 0.00435 & 0.00433 & 0.00114 & 0.00434 & 0.00434 \\
+1--5 years   & 0.00817 & 0.07997 & 0.04602 & 0.00328 & 0.01241 & 0.01236 & 0.00322 & 0.01241 & 0.01236 \\
+5--10 years  & 0.00450 & 0.03444 & 0.13343 & 0.00201 & 0.00870 & 0.00871 & 0.00200 & 0.00870 & 0.00872 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+% --- Table 5: Bootstrapped Per-class Metrics ---
+\begin{table}[h]
+\caption{Bootstrapped per-class performance metrics on the All of Us validation set ($N=1{,}000$ iterations, 95\% CI). Each cell reports the mean and 95\% confidence interval. AUPRC = area under the precision-recall curve (raw probabilities); Brier = Brier score (isotonic-calibrated probabilities); TPR = sensitivity; FPR = fall-out; PPV = positive predictive value; NPV = negative predictive value. Macro-average ROC-AUC (one-vs-rest): 0.9615 [0.9510, 0.9706].}
+\label{tab:aou_bootstrapped}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lllllll}
+\toprule
+Risk Class & AUPRC & Brier & TPR & FPR & PPV & NPV \\
+\midrule
+$>$10 years (0) & 0.9997 [0.9995, 0.9998] & 0.0048 [0.0043, 0.0053] & 0.9736 [0.9722, 0.9750] & 0.1760 [0.1379, 0.2124] & 0.9986 [0.9983, 0.9990] & 0.1910 [0.1723, 0.2093] \\
+1--5 years (1)  & 0.1715 [0.1255, 0.2222] & 0.0033 [0.0028, 0.0037] & 0.4721 [0.4000, 0.5430] & 0.0109 [0.0101, 0.0118] & 0.1378 [0.1108, 0.1656] & 0.9980 [0.9977, 0.9984] \\
+$<$1 year (2)   & 0.2824 [0.1735, 0.3935] & 0.0010 [0.0008, 0.0013] & 0.7304 [0.6154, 0.8333] & 0.0112 [0.0103, 0.0122] & 0.0760 [0.0561, 0.0973] & 0.9997 [0.9995, 0.9998] \\
+5--10 years (3) & 0.3167 [0.2343, 0.4008] & 0.0020 [0.0017, 0.0024] & 0.5632 [0.4785, 0.6435] & 0.0062 [0.0056, 0.0069] & 0.1883 [0.1506, 0.2251] & 0.9989 [0.9986, 0.9992] \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% --- Table 6: Per-class ROC-AUC ---
+\begin{table}[h]
+\caption{Per-class bootstrapped ROC-AUC (one-vs-rest, $N=1{,}000$ iterations) on the All of Us validation set. Mean AUC and 95\% confidence interval bounds are reported for each risk class.}
+\label{tab:aou_roc_auc}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{lrrr}
+\toprule
+Risk Class & Mean AUC & 95\% CI Lower & 95\% CI Upper \\
+\midrule
+$>$10 years (0) & 0.9637 & 0.9532 & 0.9733 \\
+1--5 years (1)  & 0.9293 & 0.8996 & 0.9528 \\
+$<$1 year (2)   & 0.9811 & 0.9717 & 0.9890 \\
+5--10 years (3) & 0.9718 & 0.9563 & 0.9842 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\end{document}
+\end{document}

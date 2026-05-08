@@ -14,8 +14,18 @@
 \usepackage{subcaption}
 \usepackage{array}
 \usepackage{multirow}
+\usepackage{makecell}
+\usepackage{float}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 
-% Line spacing
+% Figure paths
+\graphicspath{
+  {../publication_figures/}
+  {../embeddings_BEHRT/}
+  {../Testing_NN_XGBoost_on_4_risk_classes/}
+}
+
 \doublespacing
 
 % Title block
@@ -261,8 +271,315 @@ Because transformer inference is substantially more expensive than scoring spars
 
 A sparse binary feature matrix was constructed using the same procedure as for MarketScan, restricted to the same 3{,}304 PhecodeX columns used at training. The 146 PhecodeX phenotypes that appeared in All of Us but were absent from the MarketScan feature set were discarded; columns observed in MarketScan but not in All of Us were retained as all-zero vectors to preserve input dimensionality.
 
+%% ============================================================
+%%  RESULTS
+%% ============================================================
+
+\section{Results}
+
+We evaluated BEHRT-LoRA, XGBoost, and a feedforward neural network (NN) on the MarketScan held-out test set. Due to class imbalance (the control class accounts for approximately 99\% of the cohort), ROC-AUC and AUPRC were treated as the primary 
+measures of predictive ability. BEHRT-LoRA was evaluated on a class-stratified subsample of $N=50{,}000$ patients; XGBoost and NN were evaluated on the full test set ($N=1{,}217{,}479$). Confidence intervals were obtained by patient-level resampling ($N=1{,}000$ iterations for BEHRT-LoRA; $N=500$ for XGBoost and NN).
+
+%% ----------------------------------------------------------
+\subsection{Overall Discrimination}
+%% ----------------------------------------------------------
+
+Unlike overall accuracy, which is dominated by the most prevalent group, macro-averaged metrics weight each risk group equally by 
+computing performance separately per group and averaging the results regardless of group size. Because the three fracture risk 
+groups are rare but carry the greatest clinical significance, macro-averaged metrics were used as the summary measure of model performance.
+
+
+BEHRT-LoRA achieved the highest macro-averaged performance on the 
+held-out test set, outperforming XGBoost and the neural network on 
+every summary metric (Table~\ref{tab:overall_comparison}). The 
+macro-averaged ROC-AUC was 0.978 for BEHRT-LoRA, compared to 0.764 
+for XGBoost and 0.783 for the neural network. In practical terms, 
+BEHRT-LoRA correctly ranked a high-risk patient above a low-risk 
+patient in roughly 98 out of 100 comparisons, while the simpler 
+models did so in roughly 78 out of 100.
+
+The ROC curves, shown in Figure~\ref{fig:roc_curves}, capture how 
+well each model separates risk groups across all possible decision thresholds, but they can be overly optimistic when cases are rare. The precision-recall curves in Figure~\ref{fig:pr_curves} tell a 
+more demanding story: they show the trade-off between how many true fracture cases the model identifies and how often it raises 
+a false alarm. A model that flags every patient as high-risk will find all true cases but will be wrong almost every time, given how rare fractures are in this cohort. The area under the precision-recall curve therefore reflects whether a model can 
+identify a meaningful proportion of at-risk patients without overwhelming clinicians with false positives, which is the 
+practically relevant question in a screening setting.
+
+\begin{table}[H]
+\centering
+\caption{Overall multi-class performance on the MarketScan held-out test set. Precision, recall, and F1 are macro (unweighted) averages across the four risk classes; ROC-AUC is the macro one-vs-rest area under the curve. Higher is better for all metrics.}
+\label{tab:overall_comparison}
+\begin{tabular}{lccccc}
+\toprule
+Model & Accuracy & Macro Precision & Macro Recall & Macro F1 & Macro ROC-AUC \\
+\midrule
+BEHRT-LoRA & 0.963 & 0.398 & 0.837 & 0.479 & 0.978 \\
+XGBoost    & 0.686 & 0.258 & 0.474 & 0.222 & 0.764 \\
+NN         & 0.580 & 0.257 & 0.509 & 0.199 & 0.783 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_behrt.png}
+  \caption{BEHRT-LoRA}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_xgboost.png}
+  \caption{XGBoost}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_nn.png}
+  \caption{Neural Network}
+\end{subfigure}
+\caption{One-vs-rest receiver operating characteristic (ROC) curves for each risk class on the MarketScan held-out test set. Each panel shows per-class curves with the corresponding area under the curve (AUC) annotated in the legend. The diagonal dashed line represents a random classifier.}
+\label{fig:roc_curves}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_behrt.png}
+  \caption{BEHRT-LoRA}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_xgboost.png}
+  \caption{XGBoost}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_nn.png}
+  \caption{Neural Network}
+\end{subfigure}
+\caption{One-vs-rest precision--recall curves for each risk class on the MarketScan held-out test set. The area under the precision--recall curve (AUPRC) is annotated in each legend. Horizontal dashed lines indicate the class prevalence, which serves as the baseline AUPRC for a random classifier. Note that the $y$-axis is log-scaled for XGBoost and the Neural Network to make the low-precision regime visible.}
+\label{fig:pr_curves}
+\end{figure}
+
+%% ----------------------------------------------------------
+\subsection{Per-Class Classification Performance}
+%% ----------------------------------------------------------
+
+The performance advantage of BEHRT-LoRA was consistent across all four risk groups and was most pronounced among the three fracture risk groups, each accounting for less than 1\% of the cohort. Per-class ROC-AUC 
+exceeded 0.96 in all four groups for BEHRT-LoRA, with lower confidence interval bounds remaining above 0.957, indicating stable and reliable separation between risk groups. XGBoost and the neural network achieved per-class ROC-AUC between 0.73 and 0.87, a range that in a screening context would translate to a substantial number of high-risk patients being unidentified (Table~\ref{tab:per_class_discrimination}).
+
+The precision-recall curves revealed an even sharper contrast. For the three fracture risk groups, BEHRT-LoRA achieved an area 
+under the precision-recall curve between 0.62 and 0.63, meaning that even among a population where true fracture cases are rare, the model retained meaningful ability to identify them without excessive false alarms. XGBoost and the neural network achieved values between 0.015 and 0.018 on the same groups, barely above the baseline expected from a model that assigns risk at random. 
+
+
+\begin{table}[H]
+\centering
+\caption{Per-class discrimination on the MarketScan held-out test set. Values are bootstrap means with 95\% confidence intervals in parentheses. ROC-AUC and AUPRC are computed one-vs-rest using raw probability outputs. Risk classes follow Table~\ref{tab:groups}.}
+\label{tab:per_class_discrimination}
+\begin{tabular}{llccc}
+\toprule
+Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
+\midrule
+\multirow{4}{*}{ROC-AUC}
+ & Control     & 0.973 (0.964--0.983) & 0.764 (0.746--0.781) & 0.783 (0.770--0.799) \\
+ & $<$1 year   & 0.979 (0.970--0.987) & 0.738 (0.708--0.767) & 0.753 (0.723--0.781) \\
+ & 1--5 years  & 0.969 (0.957--0.980) & 0.728 (0.704--0.753) & 0.735 (0.713--0.757) \\
+ & 5--10 years & 0.992 (0.984--0.997) & 0.823 (0.793--0.850) & 0.866 (0.843--0.887) \\
+\midrule
+\multirow{4}{*}{AUPRC}
+ & Control     & 1.000 (1.000--1.000) & 0.996 (0.995--0.996) & 0.997 (0.996--0.997) \\
+ & $<$1 year   & 0.633 (0.557--0.701) & 0.015 (0.011--0.020) & 0.016 (0.011--0.021) \\
+ & 1--5 years  & 0.631 (0.570--0.687) & 0.017 (0.014--0.022) & 0.018 (0.014--0.023) \\
+ & 5--10 years & 0.623 (0.522--0.725) & 0.017 (0.010--0.027) & 0.015 (0.011--0.022) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Alternative presentation of Table~\ref{tab:per_class_discrimination} with 95\% bootstrap confidence intervals shown in smaller type below each point estimate. Identical underlying data; format follows the two-line convention used in JAMA, NEJM, and BMJ tables.}
+\label{tab:per_class_discrimination_alt}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{llccc}
+\toprule
+Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
+\midrule
+\multirow{4}{*}{ROC-AUC}
+ & Control     & \makecell{0.973 \\ {\scriptsize 0.964--0.983}} & \makecell{0.764 \\ {\scriptsize 0.746--0.781}} & \makecell{0.783 \\ {\scriptsize 0.770--0.799}} \\
+ & $<$1 year   & \makecell{0.979 \\ {\scriptsize 0.970--0.987}} & \makecell{0.738 \\ {\scriptsize 0.708--0.767}} & \makecell{0.753 \\ {\scriptsize 0.723--0.781}} \\
+ & 1--5 years  & \makecell{0.969 \\ {\scriptsize 0.957--0.980}} & \makecell{0.728 \\ {\scriptsize 0.704--0.753}} & \makecell{0.735 \\ {\scriptsize 0.713--0.757}} \\
+ & 5--10 years & \makecell{0.992 \\ {\scriptsize 0.984--0.997}} & \makecell{0.823 \\ {\scriptsize 0.793--0.850}} & \makecell{0.866 \\ {\scriptsize 0.843--0.887}} \\
+\midrule
+\multirow{4}{*}{AUPRC}
+ & Control     & \makecell{1.000 \\ {\scriptsize 1.000--1.000}} & \makecell{0.996 \\ {\scriptsize 0.995--0.996}} & \makecell{0.997 \\ {\scriptsize 0.996--0.997}} \\
+ & $<$1 year   & \makecell{0.633 \\ {\scriptsize 0.557--0.701}} & \makecell{0.015 \\ {\scriptsize 0.011--0.020}} & \makecell{0.016 \\ {\scriptsize 0.011--0.021}} \\
+ & 1--5 years  & \makecell{0.631 \\ {\scriptsize 0.570--0.687}} & \makecell{0.017 \\ {\scriptsize 0.014--0.022}} & \makecell{0.018 \\ {\scriptsize 0.014--0.023}} \\
+ & 5--10 years & \makecell{0.623 \\ {\scriptsize 0.522--0.725}} & \makecell{0.017 \\ {\scriptsize 0.010--0.027}} & \makecell{0.015 \\ {\scriptsize 0.011--0.022}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Second alternative presentation of Table~\ref{tab:per_class_discrimination} with explicit Mean and 95\% bootstrap CI columns under each model. Identical underlying data.}
+\label{tab:per_class_discrimination_alt2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{ll cc cc cc}
+\toprule
+ & & \multicolumn{2}{c}{BEHRT-LoRA} & \multicolumn{2}{c}{XGBoost} & \multicolumn{2}{c}{NN} \\
+\cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8}
+Metric & Risk Class & Mean & 95\% CI & Mean & 95\% CI & Mean & 95\% CI \\
+\midrule
+\multirow{4}{*}{ROC-AUC}
+ & Control     & 0.973 & 0.964--0.983 & 0.764 & 0.746--0.781 & 0.783 & 0.770--0.799 \\
+ & $<$1 year   & 0.979 & 0.970--0.987 & 0.738 & 0.708--0.767 & 0.753 & 0.723--0.781 \\
+ & 1--5 years  & 0.969 & 0.957--0.980 & 0.728 & 0.704--0.753 & 0.735 & 0.713--0.757 \\
+ & 5--10 years & 0.992 & 0.984--0.997 & 0.823 & 0.793--0.850 & 0.866 & 0.843--0.887 \\
+\midrule
+\multirow{4}{*}{AUPRC}
+ & Control     & 1.000 & 1.000--1.000 & 0.996 & 0.995--0.996 & 0.997 & 0.996--0.997 \\
+ & $<$1 year   & 0.633 & 0.557--0.701 & 0.015 & 0.011--0.020 & 0.016 & 0.011--0.021 \\
+ & 1--5 years  & 0.631 & 0.570--0.687 & 0.017 & 0.014--0.022 & 0.018 & 0.014--0.023 \\
+ & 5--10 years & 0.623 & 0.522--0.725 & 0.017 & 0.010--0.027 & 0.015 & 0.011--0.022 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% ----------------------------------------------------------
+\subsection{Sensitivity, PPV, and NPV}
+%% ----------------------------------------------------------
+
+To assess performance at a fixed decision rule, each patient was assigned to the risk group the model considered most likely, and 
+sensitivity and positive predictive value were computed from the resulting assignments.
+BEHRT-LoRA identified between 77\% and 82\% of patients in each fracture risk group, with positive predictive values between 12\% 
+and 24\%, meaning that between one in eight and one in four patients flagged by the model had a true fracture in that time 
+window (Table~\ref{tab:diagnostic_comparison}). XGBoost and the neural network reached comparable sensitivity in some risk groups, 
+but did so with positive predictive values of 1\% to 2\%, meaning that fewer than one in fifty patients flagged as high-risk 
+actually belonged to that group. Negative predictive values exceeded 99.8\% across all three models and all fracture risk 
+groups, a figure that reflects the rarity of the outcome rather than model sensitivity.
+
+The confusion matrices in Figure~\ref{fig:confusion_matrices} 
+provide a visual account of where each model places its predictions. For BEHRT-LoRA, predictions are concentrated along 
+the diagonal, indicating that patients are most often assigned to their true risk group. For XGBoost and the neural network, 
+predictions for the fracture risk groups are more widely distributed across other classes, particularly for the three 
+fracture timing groups.
+
+\begin{table}[H]
+\centering
+\caption{Operating-point classification performance on the MarketScan held-out test set, computed using one-vs-rest argmax predictions. Sensitivity = TP/(TP+FN); PPV = TP/(TP+FP); NPV = TN/(TN+FN). Risk classes follow Table~\ref{tab:groups}.}
+\label{tab:diagnostic_comparison}
+\begin{tabular}{llccc}
+\toprule
+Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
+\midrule
+\multirow{4}{*}{Sensitivity}
+ & Control     & 0.965 & 0.689 & 0.582 \\
+ & $<$1 year   & 0.817 & 0.479 & 0.548 \\
+ & 1--5 years  & 0.768 & 0.354 & 0.251 \\
+ & 5--10 years & 0.798 & 0.374 & 0.657 \\
+\midrule
+\multirow{4}{*}{PPV}
+ & Control     & 0.999 & 0.996 & 0.997 \\
+ & $<$1 year   & 0.116 & 0.010 & 0.010 \\
+ & 1--5 years  & 0.235 & 0.016 & 0.013 \\
+ & 5--10 years & 0.242 & 0.012 & 0.008 \\
+\midrule
+\multirow{4}{*}{NPV}
+ & Control     & 0.204 & 0.022 & 0.019 \\
+ & $<$1 year   & 0.999 & 0.998 & 0.998 \\
+ & 1--5 years  & 0.999 & 0.997 & 0.996 \\
+ & 5--10 years & 1.000 & 0.999 & 0.999 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig4_cm_behrt.png}
+  \caption{BEHRT-LoRA}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig4_cm_xgboost.png}
+  \caption{XGBoost}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig4_cm_nn.png}
+  \caption{Neural Network}
+\end{subfigure}
+\caption{Overall four-class confusion matrices on the MarketScan held-out test set. Cell shading uses a logarithmic scale to accommodate the extreme class imbalance. Classes are ordered by time to fracture ($<$1 year, 1--5 years, 5--10 years, $>$10 years) on both axes.}
+\label{fig:confusion_matrices}
+\end{figure}
+
+%% ----------------------------------------------------------
+\subsection{Probability Calibration}
+%% ----------------------------------------------------------
+
+Calibration describes how well a model's predicted probabilities reflect observed event rates in practice. The Brier score measures the average squared difference between predicted probabilities and true outcomes. Lower values of Brier Score indicate better calibration and a score equal to the class prevalence represents the performance of a model that ignores all patient information and simply predicts the average rate.
+In this case, all three models were poorly calibrated. The discrepancy between predicted probabilities and observed 
+outcomes was largest for XGBoost and the neural network on the control class, with raw Brier scores of 0.30 and 0.38 
+respectively, against a prevalence-only baseline of 0.010. This indicated that their raw probability outputs were substantially 
+less informative than simply predicting the proportion of control patients in the cohort. The reliability diagrams in 
+Figure~\ref{fig:calibration_raw} illustrate this directly: a perfectly calibrated model would follow the diagonal line, where 
+predicted probability equals observed frequency. Before calibration, XGBoost and the neural network deviate substantially 
+from this line, while BEHRT-LoRA tracks closer. However, BEHRT-LoRA shows overconfidence at intermediate predicted probabilities, assigning higher probabilities than the observed event rates justify.
+
+The models were fit using isotonic regression 70\% of the evaluation set. All three models moved toward the diagonal and Brier scores dropped sharply 
+(Table~\ref{tab:brier_calibration_comparison}). BEHRT-LoRA retained the lowest Brier score in every risk group after 
+calibration. For XGBoost and the neural network, Brier scores after calibration converged to values near the prevalence-only 
+baseline, indicating that recalibration corrected the shape of their probability outputs but did not recover probabilistic 
+information that was absent from the raw predictions.
+
+
+\begin{table}[H]
+\centering
+\caption{Per-class Brier scores before and after isotonic calibration on the MarketScan held-out test set. Calibrators were fit on 70\% of the test set and evaluated on the remaining 30\%. The baseline column reports $p(1-p)$, the Brier score of a constant predictor that always returns the class prevalence $p$. Lower is better. Risk classes follow Table~\ref{tab:groups}.}
+\label{tab:brier_calibration_comparison}
+\begin{tabular}{lcccccccc}
+\toprule
+ & & \multicolumn{3}{c}{Raw probabilities} & & \multicolumn{3}{c}{Isotonic-calibrated} \\
+\cmidrule(lr){3-5} \cmidrule(lr){7-9}
+Risk Class & Baseline & BEHRT & XGB & NN & & BEHRT & XGB & NN \\
+\midrule
+Control     & 0.0097 & 0.0313 & 0.3040 & 0.3777 & & 0.0025 & 0.0094 & 0.0094 \\
+$<$1 year   & 0.0031 & 0.0152 & 0.0725 & 0.0859 & & 0.0017 & 0.0031 & 0.0031 \\
+1--5 years  & 0.0048 & 0.0116 & 0.0567 & 0.0512 & & 0.0027 & 0.0048 & 0.0048 \\
+5--10 years & 0.0019 & 0.0040 & 0.0312 & 0.0529 & & 0.0011 & 0.0019 & 0.0019 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig3_calibration_behrt.png}
+  \caption{BEHRT-LoRA}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig3_calibration_xgboost.png}
+  \caption{XGBoost}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig3_calibration_nn.png}
+  \caption{Neural Network}
+\end{subfigure}
+\caption{Reliability diagrams on the MarketScan held-out test set showing the effect of isotonic calibration. Dashed lines with circles show raw (uncalibrated) predicted probabilities; solid lines with squares show isotonic-calibrated probabilities, fit on 70\% of the evaluation set and assessed on the remaining 30\%. The dotted diagonal represents perfect calibration. Classes are ordered consistently across panels ($<$1 year, 1--5 years, 5--10 years, $>$10 years).}
+\label{fig:calibration_raw}
+\end{figure}
+
 % Bibliography
 \bibliographystyle{vancouver}
 \bibliography{references}
 
 \end{document}
+% Bibliography
+\bibliographystyle{vancouver}
+\bibliography{references}
+
+\end{document}
+
+
+
