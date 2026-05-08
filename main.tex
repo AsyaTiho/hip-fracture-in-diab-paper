@@ -360,6 +360,13 @@ NN         & 0.580 & 0.257 & 0.509 & 0.199 & 0.783 \\
 \label{fig:pr_curves}
 \end{figure}
 
+\subsubsection{External Validation (All of Us)}
+
+To assess whether the observed discrimination generalizes beyond the training population, the same three models were applied without retraining to the All of Us cohort. Table~\ref{tab:aou_overall_comparison} presents the overall metrics on the external data.
+
+% TODO: insert Table tab:aou_overall_comparison and ROC/PR figures for All of Us
+% TODO: narrative comparing MarketScan vs All of Us overall metrics; discuss magnitude of any performance drop
+
 %% ----------------------------------------------------------
 \subsection{Per-Class Classification Performance}
 %% ----------------------------------------------------------
@@ -393,6 +400,13 @@ Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsubsection{External Validation (All of Us)}
+
+The per-class discrimination pattern observed in MarketScan was examined in the All of Us cohort to determine whether the advantage of BEHRT-LoRA over XGBoost and the neural network persists in an independent, demographically distinct population. Table~\ref{tab:aou_per_class_discrimination} reports per-class ROC-AUC and AUPRC on the external data.
+
+% TODO: insert Table tab:aou_per_class_discrimination
+% TODO: narrative comparing internal vs external per-class metrics; note any classes where performance degrades more than others
 
 \begin{table}[H]
 \centering
@@ -512,6 +526,13 @@ Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
 \label{fig:confusion_matrices}
 \end{figure}
 
+\subsubsection{External Validation (All of Us)}
+
+When the same operating-point analysis was repeated on the All of Us cohort, BEHRT-LoRA maintained higher sensitivity and PPV than both baselines across all fracture risk groups (Table~\ref{tab:aou_diagnostic_comparison}). The confusion matrices for All of Us are shown in Figure~\ref{fig:aou_confusion_matrices}.
+
+% TODO: insert Table tab:aou_diagnostic_comparison and confusion matrix figure for All of Us
+% TODO: narrative discussing whether the sensitivity--PPV trade-off shifts on the external cohort
+
 %% ----------------------------------------------------------
 \subsection{Probability Calibration}
 %% ----------------------------------------------------------
@@ -570,16 +591,15 @@ $<$1 year   & 0.0031 & 0.0152 & 0.0725 & 0.0859 & & 0.0017 & 0.0031 & 0.0031 \\
 \label{fig:calibration_raw}
 \end{figure}
 
+\subsubsection{External Validation (All of Us)}
+
+Calibration was reassessed on the All of Us cohort to determine whether the isotonic calibrators fitted on MarketScan data transfer to an external population. Table~\ref{tab:aou_brier_calibration_comparison} reports raw and isotonic-calibrated Brier scores, and Figure~\ref{fig:aou_calibration} shows the corresponding reliability diagrams.
+
+% TODO: insert Table tab:aou_brier_calibration_comparison and calibration figure for All of Us
+% TODO: narrative discussing whether MarketScan-fitted calibrators transfer or whether recalibration on target-population data is needed
+
 % Bibliography
 \bibliographystyle{vancouver}
 \bibliography{references}
 
 \end{document}
-% Bibliography
-\bibliographystyle{vancouver}
-\bibliography{references}
-
-\end{document}
-
-
-
