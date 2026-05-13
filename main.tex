@@ -16,16 +16,10 @@
 \usepackage{multirow}
 \usepackage{makecell}
 \usepackage{float}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
 
 % Figure paths
-\graphicspath{
-  {../publication_figures/}
-  {../embeddings_BEHRT/}
-  {../Testing_NN_XGBoost_on_4_risk_classes/}
-}
-
+\graphicspath{{figures/overleaf_figures/}}
+% Line spacing
 \doublespacing
 
 % Title block
@@ -69,9 +63,9 @@ The three compared models were: (1) BEHRT-LoRA, a BERT adapted transformer encod
 \subsection{Data Sources}
 %% ----------------------------------------------------------
 
-\subsubsection{IBM MarketScan Commercial Claims Database}
+\subsubsection{Merative MarketScan Commercial Claims Database}
 
-The MarketScan Commercial Claims Database contains de-identified administrative claims from employer-sponsored health plans across the United States. The version used in this study covers patients enrolled between January 2003 and January 2024. Data elements included hospital and outpatient diagnosis codes (ICD-9-CM and ICD-10-CM), continuous enrollment records, and patient demographic information.
+The Merative MarketScan Commercial Claims Database contains de-identified administrative claims from employer-sponsored health plans across the United States. The version used in this study covers patients enrolled between January 2003 and January 2024. Data elements included hospital and outpatient diagnosis codes (ICD-9-CM and ICD-10-CM), continuous enrollment records, and patient demographic information.
 
 \subsubsection{All of Us Research Program}
 
@@ -401,13 +395,6 @@ Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
 \end{tabular}
 \end{table}
 
-\subsubsection{External Validation (All of Us)}
-
-The per-class discrimination pattern observed in MarketScan was examined in the All of Us cohort to determine whether the advantage of BEHRT-LoRA over XGBoost and the neural network persists in an independent, demographically distinct population. Table~\ref{tab:aou_per_class_discrimination} reports per-class ROC-AUC and AUPRC on the external data.
-
-% TODO: insert Table tab:aou_per_class_discrimination
-% TODO: narrative comparing internal vs external per-class metrics; note any classes where performance degrades more than others
-
 \begin{table}[H]
 \centering
 \caption{Alternative presentation of Table~\ref{tab:per_class_discrimination} with 95\% bootstrap confidence intervals shown in smaller type below each point estimate. Identical underlying data; format follows the two-line convention used in JAMA, NEJM, and BMJ tables.}
@@ -457,6 +444,14 @@ Metric & Risk Class & Mean & 95\% CI & Mean & 95\% CI & Mean & 95\% CI \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsubsection{External Validation (All of Us)}
+
+The per-class discrimination pattern observed in MarketScan was examined in the All of Us cohort to determine whether the advantage of BEHRT-LoRA over XGBoost and the neural network persists in an independent, demographically distinct population. Table~\ref{tab:aou_per_class_discrimination} reports per-class ROC-AUC and AUPRC on the external data.
+
+% TODO: insert Table tab:aou_per_class_discrimination
+% TODO: narrative comparing internal vs external per-class metrics; note any classes where performance degrades more than others
+
 
 %% ----------------------------------------------------------
 \subsection{Sensitivity, PPV, and NPV}
@@ -598,6 +593,11 @@ Calibration was reassessed on the All of Us cohort to determine whether the isot
 % TODO: insert Table tab:aou_brier_calibration_comparison and calibration figure for All of Us
 % TODO: narrative discussing whether MarketScan-fitted calibrators transfer or whether recalibration on target-population data is needed
 
+% Bibliography
+\bibliographystyle{vancouver}
+\bibliography{references}
+
+\end{document}
 % Bibliography
 \bibliographystyle{vancouver}
 \bibliography{references}
