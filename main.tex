@@ -593,11 +593,250 @@ Calibration was reassessed on the All of Us cohort to determine whether the isot
 % TODO: insert Table tab:aou_brier_calibration_comparison and calibration figure for All of Us
 % TODO: narrative discussing whether MarketScan-fitted calibrators transfer or whether recalibration on target-population data is needed
 
-% Bibliography
-\bibliographystyle{vancouver}
-\bibliography{references}
+%% ============================================================
+%%  DISCUSSION
+%% ============================================================
 
-\end{document}
+\section{Discussion}
+
+%% ----------------------------------------------------------
+\subsection{How Clinicians Currently Assess Hip Fracture Risk}
+%% ----------------------------------------------------------
+
+The current standard for fracture risk assessment in clinical practice is
+FRAX, a web-based algorithm that estimates the 10-year probability of a
+major osteoporotic or hip fracture from a small set of dichotomized risk
+factors: age, sex, body mass index, prior fracture, parental hip fracture,
+current smoking, glucocorticoid use, rheumatoid arthritis, secondary
+osteoporosis, and alcohol use~\citep{Kanis2010FRAX}. FRAX is typically
+applied after a clinical interview and, in most guideline frameworks, is
+recommended in conjunction with bone mineral density (BMD) testing by
+dual-energy X-ray absorptiometry (DXA). These resources are not
+uniformly available and are rarely deployed unless there is already clinical
+suspicion of elevated risk. In practice, FRAX is seldom calculated in patients
+with diabetes unless the provider has specifically considered fragility
+fracture. As a result, a large proportion of at-risk patients are never
+identified.
+
+A further limitation is that FRAX was not designed for the diabetic population
+and systematically underestimates their fracture risk. Because BMD is often
+preserved or even elevated in type~2 diabetes despite deficits in bone quality,
+FRAX scores based on BMD do not capture the excess structural fragility that
+characterizes diabetic bone disease~\citep{Giangregorio2012JBMR,
+Beaudoin2019OsteoInt,Jain2025JBMR}. The tool also lacks variables for diabetes
+type, disease duration, glycemic control, and medication exposure, all of which
+modulate fracture risk. Even an optimally administered FRAX is therefore an
+incomplete summary of risk in this population.
+
+%% ----------------------------------------------------------
+\subsection{What the Model Knows vs.\ What the Clinician Knows}
+%% ----------------------------------------------------------
+
+An important distinction between algorithmic and clinical risk assessment is
+the nature of the information each draws upon. In clinical practice, the
+physician's assessment is informed by a targeted history elicited directly from
+the patient, a physical examination, and the results of tests ordered
+specifically to characterize fracture risk (e.g., DXA, serum calcium,
+25-hydroxyvitamin~D). This information is current, patient-specific, and
+actively solicited. The clinician can adapt the depth of the inquiry in real
+time, follow unexpected findings, and integrate information that was never
+formally recorded anywhere.
+
+A machine-learning model trained on administrative claims can only see what has
+already been recorded and coded. Through its self-attention mechanism, the transformer encoder can learn
+associations between co-occurring diagnoses and detect temporal patterns across
+the visit record. However, it does not interpret these patterns the way a
+clinician would; it identifies statistical regularities in the coded visit
+history that are predictive of the outcome.
+
+This asymmetry has an important practical implication. The model is well suited
+to extracting signal from a large volume of routinely collected coded data.
+The clinician's comparative advantage lies in gathering new, first-hand
+information that the model can never access. Combining both sources of
+information is likely to offer better risk stratification than either alone.
+
+Several variables that a clinician would consider essential are not reliably
+available in the MarketScan administrative claims used to train BEHRT-LoRA.
+Race and ethnicity are associated with differences in bone density and fracture
+incidence but are poorly captured in commercial claims. BMI is a key input to
+FRAX and an independent predictor of fracture risk, yet it is infrequently
+coded in administrative data. The \textit{All of Us} Research Program addresses
+both of these gaps. As a prospective cohort with participant-reported
+demographics and physical measurements, it provides race and BMI alongside the
+longitudinal diagnosis history that BEHRT-LoRA consumes. Future work
+incorporating these features may further close the gap between the retrospective
+signal available to the model and the clinical information a physician would
+ideally consult.
+
+%% ----------------------------------------------------------
+\subsection{Comparison with FRAX: UChicago Diabetic Cohort}
+%% ----------------------------------------------------------
+
+\begin{table}[H]
+  \centering
+  \caption{Risk-class distribution in the UChicago external validation cohort
+  ($N = 13{,}550$). Classes are defined by time elapsed between first recorded
+  diabetes diagnosis and first recorded hip fracture. The control class
+  aggregates patients without a recorded fracture within ten years.}
+  \label{tab:uchicago_distribution}
+  \begin{tabular}{llrr}
+  \toprule
+  Class & Definition & $N$ & \% \\
+  \midrule
+  0 & $>$10 years (control) & 13,481 & 99.49 \\
+  2 & $<$1 year             &     10 &  0.07 \\
+  1 & 1--5 years            &     35 &  0.26 \\
+  3 & 5--10 years           &     24 &  0.18 \\
+  \midrule
+    & Total                 & 13,550 & 100.00 \\
+  \bottomrule
+  \end{tabular}
+\end{table}
+
+To benchmark BEHRT-LoRA against the current clinical standard, we applied the
+model to an independent cohort of patients with diabetes at the University of
+Chicago for whom FRAX hip scores had been clinically assigned alongside
+observed hip fracture outcomes (Table~\ref{tab:uchicago_distribution}).
+BEHRT-LoRA assigns each patient a probability of belonging to the low-risk
+class, that is, the probability of no recorded hip fracture within ten years.
+The BEHRT risk score was defined as:
+\begin{equation}
+s_{\text{BEHRT}} = 1 - \hat{P}(\text{class 0}),
+\label{eq:behrt-score}
+\end{equation}
+where class~0 corresponds to the control group (no fracture within ten years).
+A higher score indicates greater predicted fracture risk. This score is
+continuous and ranges from 0 to 1, serving a role analogous to the FRAX hip
+percentage.
+
+\paragraph{Risk stratification by decile.}
+To assess how well each tool separates patients by true fracture risk, patients
+were ranked by their continuous risk score and divided into ten equally sized
+groups called deciles. Decile 1 (D1) contains the 10\% of patients with the
+lowest scores and decile 10 (D10) contains the 10\% with the highest scores.
+The observed hip fracture rate was then measured within each decile.
+Figure~\ref{fig:uc_decile} shows these rates for both BEHRT-LoRA and FRAX.
+Both tools show higher fracture rates in higher deciles. Patients ranked in
+higher deciles by either tool are more likely to fracture than those in lower
+deciles. This confirms that both tools meaningfully separate patients by true
+fracture risk.
+
+The shape of stratification differs between the two tools, however.
+FRAX produces a gradual gradient, with fracture rates rising steadily
+from near zero in the lowest deciles to approximately 2.1\% in D10.
+BEHRT-LoRA concentrates its predictive signal almost entirely in the top
+decile. Fracture rates in D1 through D9 remain near zero, while D10 reaches
+approximately 4.7\%. The vast majority of patients receive a low BEHRT score,
+but those in the top decile carry roughly twice the fracture rate of the
+highest-risk FRAX group. This distribution suggests that the BEHRT score is
+highly skewed toward low values for most patients, with a small proportion
+receiving markedly elevated scores that correspond to substantially higher
+observed fracture rates.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{figUC_A_fracture_rate_decile.png}
+\caption{Observed hip fracture rate by risk decile in the UChicago diabetic
+cohort ($N = 13{,}550$). Deciles were computed independently for BEHRT-LoRA
+(red circles, $1 - \hat{P}(\text{>10 years})$) and FRAX hip \% (blue squares)
+using quantile binning of each tool's continuous score. Error bars show
+$\pm1$ standard error of the proportion. D1 = lowest-risk decile,
+D10 = highest.}
+\label{fig:uc_decile}
+\end{figure}
+
+\paragraph{Receiver operating characteristic analysis.}
+The ROC curves in Figure~\ref{fig:uc_roc} compare discriminative ability across
+all classification thresholds. BEHRT-LoRA achieved an area under the ROC curve
+(AUC) of 0.877, compared with 0.765 for FRAX hip \%. FRAX is widely regarded as
+a moderate discriminator for hip fracture, with published AUC values in the
+diabetes literature typically in the range 0.72--0.78~\citep{Giangregorio2012JBMR,
+Beaudoin2019OsteoInt}. BEHRT-LoRA achieved this improvement using only routinely
+collected administrative codes. No clinical interview or BMD measurement was
+required. This 11-percentage-point gain over FRAX extends prior literature
+suggesting that EHR-derived models can match or exceed FRAX in diabetic
+populations.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{figUC_B_roc_behrt_frax.png}
+\caption{Receiver operating characteristic curves for binary hip fracture
+prediction in the UChicago diabetic cohort. BEHRT-LoRA (red, AUC = 0.877)
+uses the complement of the predicted control-class probability.
+FRAX (blue, AUC = 0.765) uses the assigned 10-year hip fracture percentage.
+The diagonal dotted line represents a random classifier.}
+\label{fig:uc_roc}
+\end{figure}
+
+\paragraph{Precision--recall analysis.}
+Because hip fractures are rare (prevalence 0.6\% in this cohort), the ROC curve
+can be overly optimistic. A model that correctly labels most patients in the
+majority class will achieve a high AUC even if it performs poorly on the cases
+that matter clinically. The precision--recall (PR) curves in
+Figure~\ref{fig:uc_pr} provide a more demanding evaluation. A random classifier
+has an AUPRC equal to the outcome prevalence; in this cohort that baseline is
+0.006. BEHRT-LoRA achieved an AUPRC of 0.125, more than 20 times above the
+baseline. FRAX achieved an AUPRC of 0.024, four times above the baseline but
+five times lower than BEHRT-LoRA. For a given level of sensitivity, BEHRT-LoRA
+raises far fewer false alarms than FRAX. A clinician acting on BEHRT-LoRA
+alerts would be correct more often than one acting on FRAX thresholds at the
+same recall level.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{figUC_C_pr_behrt_frax.png}
+\caption{Precision--recall curves for binary hip fracture prediction in the
+UChicago diabetic cohort. BEHRT-LoRA (red, AUPRC = 0.125) substantially
+outperforms FRAX hip \% (blue, AUPRC = 0.024). The horizontal dotted grey
+line indicates the no-skill baseline (prevalence = 0.006), which equals
+the AUPRC of a random classifier.}
+\label{fig:uc_pr}
+\end{figure}
+
+Taken together, these results show that BEHRT-LoRA can identify diabetic
+patients at elevated hip fracture risk from the electronic health record alone.
+No DXA scan, clinical interview, or active data collection is required. The
+model could be applied continuously across the full population of patients with
+diabetes in a health system, flagging the small subset of individuals who
+warrant a formal fracture risk assessment without any additional clinical
+workload.
+
+%% ----------------------------------------------------------
+\subsection{Limitations}
+%% ----------------------------------------------------------
+
+Several limitations of the present study should be acknowledged. First, the
+training data are administrative claims, which record diagnoses for billing
+purposes rather than for clinical completeness. Fall history, functional
+status, visual impairment, and patient-reported symptoms are invisible to the
+model. Second, the BEHRT-LoRA architecture imposes a 512-token limit on
+patient histories, so for patients with dense clinical activity the oldest
+events are discarded. Third, the UChicago FRAX comparison was conducted in
+a single academic center cohort of patients with diabetes. The generalizability
+of this comparison to community or rural populations is unknown. Fourth, we did
+not assess performance in patients who had already been evaluated for
+osteoporosis. The model may be most useful as a prior-screening step in the
+broader diabetic population before any formal fracture workup has been
+initiated.
+
+%% ----------------------------------------------------------
+\subsection{Conclusions}
+%% ----------------------------------------------------------
+
+BEHRT-LoRA, trained on routinely collected administrative claims, identifies
+diabetic patients at risk for hip fracture with substantially higher
+discrimination than gradient-boosted or feedforward neural network
+architectures. It also outperforms FRAX on both ROC-AUC (0.877 vs.\ 0.765) and
+AUPRC (0.125 vs.\ 0.024) in an independent external cohort where clinical FRAX
+scores were available. The model requires no clinical action beyond what has
+already been recorded in the electronic health record, making it deployable as
+a passive, continuous screening tool across an entire population of patients
+with diabetes. In this workflow, the model identifies which patients warrant
+formal assessment and the clinician determines what to do next. Linking
+algorithmically derived risk scores to structured clinical follow-up in this
+manner represents a practical path toward translating these findings into
+improved fracture prevention.
+
 % Bibliography
 \bibliographystyle{vancouver}
 \bibliography{references}
