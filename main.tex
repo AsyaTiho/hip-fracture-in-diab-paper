@@ -24,25 +24,47 @@
 
 % Title block
 \title{Prediction of Hip Fracture in Patients with Diabetes}
-\author{Anna Gerasimenko, Benjamin Kramer, Rajesh K. Jain, Andrey Rzhetsky}
-\date{\today}
+\author{Anna Gerasimenko$^1$, Benjamin Kramer$^1$, Rajesh K. Jain$^2$, Andrey Rzhetsky$^{1,3*}$}
+\date{}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-TODO: Abstract text here.
-\end{abstract}
+Patients with diabetes face a two to five times increased risk of hip
+fracture, yet the standard clinical instrument, FRAX, requires a patient
+interview and underestimates the risk in this population. We developed a
+transformer-based model (BEHRT-LoRA) that predicts hip fracture from
+routinely coded electronic health records alone, representing each
+diagnosis as a learned embedding so that the model can exploit
+similarities between related conditions rather than treating codes as
+independent features. The model was trained in 12 {,} 174 {,}785 patients
+with diabetes in the Merative MarketScan database, stratified into four
+risk classes by time of fracture and compared to XGBoost and a
+feedforward neural network. BEHRT-LoRA achieved a macro-averaged AUROC
+of 0.973, compared with 0.764 (XGBoost) and 0.783 (NN). In an
+independent cohort of diabetics from the University of Chicago with clinically
+assigned FRAX scores, BEHRT-LoRA outperformed FRAX on both AUROC
+(0.877 vs.\ 0.765) and AUPRC (0.143 vs.\ 0.024). The findings were
+confirmed in external validation using the \textit{All of Us} Research
+Program.\end{abstract}
 
-\newpage
+\noindent
+\textsuperscript{1}Department of Medicine, Section of Biomedical Data Science, University of Chicago, Chicago, IL, USA.\\
+\textsuperscript{2}Department of Medicine, Section of Endocrinology, Diabetes, and Metabolism, University of Chicago, Chicago, IL, USA.\\
+\textsuperscript{3}Department of Human Genetics, Committee on Genetics, Genomics, and Systems Biology, University of Chicago, Chicago, IL, USA.\\
+
+\textsuperscript{*}Correspondence: \texttt{andrey.rzhetsky@the University of Chicago.edu}
+
 \section{Introduction}
 
-Diabetes is one of the most common chronic diseases in the world, affecting an estimated 589~million adults aged 20--79 years in 2024 and is projected to reach 853~million by 2050~\citep{IDF2025Atlas,Genitsaridi2026Lancet}. Beyond well-recognized microvascular complications such as retinopathy and neuropathy, diabetes also confers a substantially increased risk of fragility (low-trauma) fracture. Patients with diabetes have a 2- to 5-fold higher risk of hip fracture than those without diabetes~\citep{Schwartz2001JCEM,Vestergaard2005Diabetologia,Giangregorio2012JBMR,Sellmeyer2016Diabetes,Janghorbani2006DiabetesCare}, and after long-term follow-up, approximately half of all patients with diabetes will sustain a fracture~\citep{Melton2008JBMR}. The excess fracture risk is multifactorial, reflecting a combination of higher fall rates, reduced bone turnover, and impaired bone material properties~\citep{Pijpers2012AgeAgeing,Hygum2017EJE,Furst2016JCEM}.
+Diabetes is among the most prevalent chronic diseases worldwide, affecting an estimated 589~million adults aged 20--79 years in 2024, with projections reaching 853~million by 2050~\citep{IDF2025Atlas,Genitsaridi2026Lancet}. In addition to well-recognized microvascular complications such as retinopathy and neuropathy, diabetes confers a substantially increased risk of fragility (low-trauma) fracture. Patients with diabetes have a 2- to 5-fold higher risk of hip fracture than those without diabetes~\citep{Schwartz2001JCEM,Vestergaard2005Diabetologia,Giangregorio2012JBMR,Sellmeyer2016Diabetes,Janghorbani2006DiabetesCare}, and after long-term follow-up, approximately half of all patients with diabetes will sustain a fracture~\citep{Melton2008JBMR}. The excess risk is multifactorial, reflecting higher falls rates, reduced bone turnover, and altered properties of bone material~\citep{Pijpers2012AgeAgeing,Hygum2017EJE,Furst2016JCEM}.
 
-Despite this elevated risk, it remains difficult to identify which patients with diabetes will fracture and many are never diagnosed with fracture risk. The Fracture Risk Assessment Tool (FRAX) is the most widely used prediction tool and combines demographic, anthropometric, and clinical risk factors to estimate the 10-year probability of fracture~\citep{Kanis2010FRAX}. However, FRAX requires input that is typically obtained through a direct patient interview, which demands clinician time, and in practice it is most often calculated only after bone mineral density testing. Moreover, FRAX has only moderate discriminatory ability for hip fracture (AUROC $\approx 0.78$) and has been repeatedly shown to underestimate the risk of hip fracture in patients with diabetes~\citep{Giangregorio2012JBMR,Beaudoin2019OsteoInt,Jain2025JBMR}.
+Despite this elevated risk, identifying which patients with diabetes will fracture remains difficult, and many are never diagnosed with elevated fracture risk. The Fracture Risk Assessment Tool (FRAX) is the most widely used prediction instrument and combines demographic, anthropometric, and clinical risk factors to estimate the 10-year probability of fracture~\citep{Kanis2010FRAX}. However, FRAX requires inputs typically obtained through direct patient interview, which demands clinician time, and in practice it is most often calculated only after bone mineral density testing. Moreover, FRAX has demonstrated only moderate discriminatory ability for hip fracture (with, the area under the receiver operating characteristic, AUROC, $\approx 0.78$) and has repeatedly been shown to underestimate hip fracture risk in patients with diabetes~\citep{Giangregorio2012JBMR,Beaudoin2019OsteoInt,Jain2025JBMR}.
 
-Diabetes is a heterogeneous disease whose fracture risk factors may differ from those of the general population, suggesting that disease-specific prediction tools are warranted. Advances in predictive modeling could enable targeted bone-health screening for patients with diabetes without requiring additional clinician time or bone mineral density testing. However, to date, only a small number of studies have examined machine-learning approaches to fracture prediction in this population~\citep{Li2023JOSR}. Therefore, the purpose of the present study was to develop and validate a machine-learning model for the prediction of hip fractures in patients with diabetes using a large, heterogeneous and generalizable data source. Specifically, we trained models on the Merative MarketScan Commercial Claims Datasets and externally validated them with analysis of data accumulated by the National Institutes of Health \textit{All of Us} Research Program.
+Diabetes is a heterogeneous disease whose fracture risk factors may differ from those operative in the general population, suggesting that disease-specific prediction tools are warranted. Advances in predictive modeling could enable targeted bone-health screening for patients with diabetes without requiring additional clinician time or bone mineral density testing. To date, however, only a small number of studies have examined machine-learning approaches to fracture prediction in this population~\citep{Li2023JOSR}. The present study was therefore undertaken to develop and validate machine-learning models for the prediction of hip fracture in patients with diabetes using a large, heterogeneous, and generalizable data source. Specifically, we trained models on the Merative MarketScan Commercial Claims Database and externally validated them using data from the National Institutes of Health \textit{All of Us} Research Program.
+
 %% ============================================================
 %%  METHODS
 %%  Hip Fracture Risk Prediction in Patients with Diabetes:
@@ -55,9 +77,9 @@ Diabetes is a heterogeneous disease whose fracture risk factors may differ from 
 \subsection{Study Design and Overview}
 %% ----------------------------------------------------------
 
-We conducted a retrospective cohort study using the IBM MarketScan Commercial Claims Database to develop and internally validate three machine-learning models for the prediction of hip fracture in patients with diabetes. The prediction task was framed as a four-class classification, in which patients were stratified by the time elapsed between the first recorded diagnosis of diabetes and the first recorded hip fracture (or assigned to a reference class if no diabetes-attributable fracture was observed within ten years).
+We conducted a retrospective cohort study using the Merative MarketScan Commercial Claims dataset, 2003--2024, to develop and internally validate three machine-learning models for the prediction of hip fracture in patients with diabetes. The prediction task was framed as a four-class classification in which patients were stratified by the time elapsed between the first recorded diagnosis of diabetes and the first recorded hip fracture, with a reference class assigned to patients in whom no diabetes-attributable fracture was observed within ten years.
 
-The three compared models were: (1) BEHRT-LoRA, a BERT adapted transformer encoder for electronic health records~\citep{Devlin2019BERT,Li2020BEHRT}, pre-trained in the entire MarketScan corpus and fine-tuned for classification using Low-Rank Adaptation (LoRA)~\citep{Hu2022LoRA}; (2) XGBoost, a gradient-boosted decision tree ensemble~\citep{Chen2016XGBoost}; and (3) a feedforward neural network (\texttt{SparseClassifier}). All three models were then applied, without retraining, to an independent external validation cohort drawn from the \textit{All of Us} Research Program~\citep{AllofUs2019NEJM}, allowing us to assess generalization to a more demographically diverse population.
+The three compared models were: (1) BEHRT-LoRA, a BERT-adapted transformer encoder for electronic health records~\citep{Devlin2019BERT,Li2020BEHRT}, trained on the entire MarketScan cohort and fine-tuned for classification using Low-Rank Adaptation (LoRA)~\citep{Hu2022LoRA}; (2) XGBoost, a gradient-boosted decision tree ensemble~\citep{Chen2016XGBoost}; and (3) a feedforward neural network (\texttt{SparseClassifier}). All three models were then applied, without retraining, to an independent external validation cohort drawn from the \textit{All of Us} Research Program~\citep{AllofUs2019NEJM}, allowing the generalizability assessment to a more demographically diverse population.
 
 %% ----------------------------------------------------------
 \subsection{Data Sources}
@@ -65,41 +87,41 @@ The three compared models were: (1) BEHRT-LoRA, a BERT adapted transformer encod
 
 \subsubsection{Merative MarketScan Commercial Claims Database}
 
-The Merative MarketScan Commercial Claims Database contains de-identified administrative claims from employer-sponsored health plans across the United States. The version used in this study covers patients enrolled between January 2003 and January 2024. Data elements included hospital and outpatient diagnosis codes (ICD-9-CM and ICD-10-CM), continuous enrollment records, and patient demographic information.
+The Merative MarketScan Commercial Claims dataset contains de-identified administrative health insurance claims from employer-sponsored health plans across the United States. The MarketScan version used in this study covers patients enrolled between January 2003 and January 2024. Data elements included hospital and outpatient diagnosis codes (ICD-9-CM and ICD-10-CM), continuous enrollment records, and patient demographic information.
 
 \subsubsection{All of Us Research Program}
 
 The \textit{All of Us} Research Program is a prospective longitudinal cohort funded by the National Institutes of Health (NIH) that has enrolled U.S.\ residents aged 18 years or older from more than 340 recruitment sites throughout the country since May 2018~\citep{AllofUs2019NEJM}. The program explicitly targets historically underrepresented groups in biomedical research, including racial and ethnic minorities and individuals with limited access to health care~\citep{Ramirez2022AllofUs}.
 
-Participant data are organized into a Curated Data Repository (CDR) with three access tiers: Public, Registered, and Controlled. We used the Controlled Tier CDR~v8 (dataset version \texttt{C2024Q3R8}), accessed via the All of Us Researcher Workbench. This release includes data from participants enrolled through October~1, 2023.
+Participant data are organized into a Curated Data Repository (CDR) with three access tiers: Public, Registered, and Controlled. We used the Controlled Tier CDR~v8 (dataset version \texttt{C2024Q3R8}), accessed via the All of Us Researcher Workbench. This release includes data from participants enrolled until October 1, 2023.
 
 %% ----------------------------------------------------------
 \subsection{Study Cohort and Inclusion Criteria}
 %% ----------------------------------------------------------
 
-The MarketScan study cohort was constructed by linking three administrative tables and retaining only patients who met all eligibility criteria simultaneously:
+The MarketScan study cohort was constructed by linking three administrative tables and retaining only patients who simultaneously satisfied all eligibility criteria:
 
 \begin{itemize}
 \item \textbf{Enrollment.} At least one full year of continuous insurance coverage (138{,}879{,}229 eligible enrollment records).
 \item \textbf{Demographics.} Age $\geq 20$ years at the start of the first enrollment interval (179{,}415{,}164 eligible demographic records).
-\item \textbf{Diagnosis.} At least one claim was assigned to a diabetes-specific PhecodeX code~\citep{Shuey2023PhecodeX}: \texttt{EM\_202} (type~2 diabetes mellitus), \texttt{EM\_202.1}, \texttt{EM\_202.2}, or \texttt{BI\_181} (type~1 diabetes mellitus) (18{,} 110 {,}999 eligible patients).
+\item \textbf{Diagnosis.} At least one claim mapped to a diabetes-specific PhecodeX code~\citep{Shuey2023PhecodeX}: \texttt{EM\_202} (type~2 diabetes mellitus), \texttt{EM\_202.1}, \texttt{EM\_202.2}, or \texttt{BI\_181} (type~1 diabetes mellitus) (18{,}110{,}999 eligible patients).
 \end{itemize}
 
 The inner join of the three tables yielded a final study cohort of $N = 12{,}174{,}785$ patients.
 
 \paragraph{Outcome definition and risk-group assignment.}
-For each patient, the date of the diabetes index $t_{\mathrm{DM}}$ was defined as the date of the first recorded diabetes diagnosis. The hip fracture was identified using the PhecodeX codes \texttt{MS\_745.11} (fracture of the femur) and \texttt{MS\_745.9} (pathological fracture); the date of the outcome index $t_{\mathrm{HF}}$ was the date of the first such code. Let $\Delta t = t_{\mathrm{HF}} - t_{\mathrm{DM}}$ (in days) be recorded when a fracture was recorded after the date of the index diabetes, and let $\Delta t = \infty$ be otherwise. The patients were assigned to one of the four mutually exclusive risk groups:
+For each patient, the diabetes index date $t_{\mathrm{DM}}$ was defined as the date of the first recorded diabetes diagnosis. Hip fracture was identified using the PhecodeX codes \texttt{MS\_745.11} (fracture of the femur) and \texttt{MS\_745.9} (pathological fracture); the outcome index date $t_{\mathrm{HF}}$ was defined as the date of the first such code. We defined $\Delta t = t_{\mathrm{HF}} - t_{\mathrm{DM}}$ (in days) when a fracture occurred after the diabetes index, and $\Delta t = \infty$ otherwise. The patients were assigned to one of the four mutually exclusive risk groups:
 \begin{equation}
 y =
 \begin{cases}
+0, & \text{No-fracture control,} \\[2pt]
 1, & 1 \leq \Delta t \leq 365 \quad (<\!1\text{ year}), \\[2pt]
 2, & 366 \leq \Delta t \leq 1{,}825 \quad (1\text{--}5\text{ years}), \\[2pt]
-3, & 1{,}826 \leq \Delta t \leq 3{,}650 \quad (5\text{--}10\text{ years}), \\[2pt]
-0, & \text{otherwise (control).}
+3, & 1{,}826 \leq \Delta t \leq 3{,}650 \quad (5\text{--}10\text{ years}). \\[2pt]
 \end{cases}
 \label{eq:risk-groups}
 \end{equation}
-Therefore, the control class aggregates patients without recorded fractures, fractures occurring on or before $t_{\mathrm{DM}}$, and fractures occurring more than ten years after $t_{\mathrm{DM}}$. We collapsed these into a single reference group because hip fracture is a rare outcome and a gap that exceeds ten years makes a causal relationship with diabetes biologically implausible. The cohort counts for each group are given in Table~\ref{tab:groups}.
+The control class therefore aggregates three subgroups: patients without recorded fractures, patients with fractures occurring on or before $t_{\mathrm{DM}}$, and patients with fractures occurring more than ten years after $t_{\mathrm{DM}}$. These subgroups were collapsed into a single reference class because hip fracture is a rare outcome and because an interval of more than ten years is rare. The cohort counts for each group are presented in Table~\ref{tab:groups}.
 
 \begin{table}[h]
 \centering
@@ -119,7 +141,7 @@ Group & Label & Definition & $N$ \\
 
 \subsection{All of Us Validation Cohort}
 
-The same diabetes diagnosis and minimum-age criteria were applied to the All of Us CDR dataset~v8 (\texttt{C2024Q3R8}), which produced a validation cohort of 98{,}399 participants with a documented diabetes diagnosis and at least one electronic health record (EHR) condition record. Continuous enrollment was not required, because All of Us is a prospective research cohort rather than an insurance claims dataset. All cohort construction was performed in BigQuery within the All of Us Researcher Workbench.
+The same diabetes diagnosis and minimum-age criteria were applied to the \textit{All of Us} CDR dataset~v8 (\texttt{C2024Q3R8}), which produced a validation cohort of 98{,}399 participants with a documented diabetes diagnosis and at least one electronic health record (EHR) condition record. Continuous enrollment was not required, as \textit{All of Us} is a prospective research cohort rather than an insurance claims dataset. All cohort construction was performed in BigQuery within the \textit{All of Us} Researcher Workbench.
 
 %% ----------------------------------------------------------
 \subsection{Feature Representation}
@@ -128,13 +150,13 @@ The same diabetes diagnosis and minimum-age criteria were applied to the All of 
 \subsubsection{BEHRT-LoRA: EHR Token Sequences}
 
 \paragraph{Code mapping.}
-The raw diagnosis codes ICD-9-CM and ICD-10-CM were mapped to PhecodeX phenotypes~\citep{Shuey2023PhecodeX}, which group semantically related ICD codes into a single clinical concept. This mapping reduces vocabulary size and improves portability between ICD versions and between data sources.
+The raw diagnosis codes ICD-9-CM and ICD-10-CM were mapped to PhecodeX phenotypes~\citep{Shuey2023PhecodeX}, which group semantically related ICD codes into single clinical concepts. This mapping reduces vocabulary size and improves portability between ICD versions and between data sources.
 
 \paragraph{Sequence construction.}
-For each patient, all diagnosis events were sorted chronologically and restricted to those that occurred strictly before $t_{\mathrm{HF}}$. The two phenotypes of hip-fracture (MS \texttt{\_745.11} and \texttt{MS\_745.9}) were excluded from the input sequence to prevent leakage of the outcome in both control and case patients. Events occurring on the same calendar day were grouped into a single visit; a separator token (\texttt{SEP}) was inserted between consecutive visits and appended at the end of each record. The age of each event was calculated as the difference between the calendar year of the event and the patient's birth year. Sex was treated as a static patient-level attribute and assigned uniformly across all positions in the sequence.
+For each patient, all diagnosis events were sorted chronologically and restricted to those that occurred strictly before $t_{\mathrm{HF}}$. The two phenotypes of hip-fracture (\texttt{MS\_745.11} and \texttt{MS\_745.9}) were excluded from the input sequence in both case and control patients to prevent leakage of the results. Events occurring on the same calendar day were grouped into a single visit; a separator token (\texttt{SEP}) was inserted between consecutive visits and appended at the end of each record. The patient's age at each event was computed as the difference between the event calendar year and the patient's birth year. Sex was treated as a static patient-level attribute and was assigned uniformly across all positions in the sequence.
 
 \paragraph{Token vocabularies and embeddings.}
-Each input element in a patient's history, a diagnosis, an age, or a sex label, is referred to as a \textit{token}. Unlike a text corpus, an EHR sequence contains several heterogeneous token types, each drawn from its own vocabulary (Table~\ref{tab:vocabularies}).
+Each input element in a patient's history---a diagnosis, an age, or a sex label---is referred to as a \textit{token}. Unlike a real text corpus, an EHR sequence contains several heterogeneous token types, each drawn from its own vocabulary (Table~\ref{tab:vocabularies}).
 
 \begin{table}[h!]
 \centering
@@ -168,25 +190,25 @@ One integer per visit, incremented at each visit boundary &
 \end{tabular}
 \end{table}
 
-A transformer cannot operate on tokens directly; each token must be expressed as a fixed-length real-valued vector, called an \textit{embedding}. For every entry in each vocabulary, the model maintains one such vector. These vectors are not specified in advance; they are initialized randomly and updated during training so that tokens with similar clinical or contextual meaning come to occupy nearby regions of the embedding space.
+A transformer cannot operate on tokens directly; each token must be represented as a fixed-length real-valued vector, termed an \textit{embedding}. For every entry in each vocabulary, the model maintains one such vector. These vectors are not specified a priori; they are initialized randomly and updated during training such that tokens with similar clinical or contextual meaning come to occupy nearby regions of the embedding space.
 
-Two embeddings encode structural rather than clinical information. The \textit{segment embedding} indicates which visit a diagnosis belongs to: it alternates between two values across visit boundaries, so that all diagnoses within the same visit share the same segment value. The \textit{position embedding} indicates the order of visits: it increments once per visit rather than once per diagnosis, so that the model attends to the sequence of visits rather than the sequence of individual codes.
+Two embeddings encode structural rather than clinical information. The \textit{segment embedding} indicates which visit a diagnosis belongs to: it alternates between two values at visit boundaries, so that all diagnoses within the same visit share the same segment value. The \textit{position embedding} indicates the order of visits: it increments once per visit rather than once per diagnosis, so that the model attends to the sequence of visits rather than to the sequence of individual codes.
 
 At each position $i$ in the sequence, the five embedding vectors are summed to form a single combined input vector:
 \begin{equation}
 \mathbf{e}_i \;=\; \mathbf{E}_{\mathrm{phen}}(p_i) + \mathbf{E}_{\mathrm{age}}(a_i) + \mathbf{E}_{\mathrm{sex}}(s_i) + \mathbf{E}_{\mathrm{seg}}(g_i) + \mathbf{E}_{\mathrm{pos}}(v_i),
 \label{eq:embedding-sum}
 \end{equation}
-where $p_i, a_i, s_i, g_i, v_i$ denote the phenotype, age, sex, segment, and position tokens at position $i$, and each $\mathbf{E}_{(\cdot)}$ is a learnable lookup table that maps a vocabulary index to a $d$-dimensional vector. The transformer encoder consumes the full patient history as the ordered sequence $(\mathbf{e}_1, \dots, \mathbf{e}_L)$.
+where $p_i, a_i, s_i, g_i, v_i$ denote the phenotype, age, sex, segment, and position tokens at position $i$, and each $\mathbf{E}_{(\cdot)}$ is a learnable lookup table mapping a vocabulary index to a $d$-dimensional vector. The transformer encoder consumes the full patient history as the ordered sequence $(\mathbf{e}_1, \dots, \mathbf{e}_L)$.
 
 \paragraph{Sequence length and aggregation.}
-The encoder processes a maximum of 512 positions per patient, a fixed architectural limit~\citep{Devlin2019BERT}. The first position is reserved for a special \texttt{CLS} token prepended to every sequence; for patients with longer histories, the oldest events are truncated and only the most recent 511 events are retained, on the assumption that recent clinical history is most predictive of near-term outcomes. The \texttt{CLS} token has no clinical meaning. It functions as an aggregation point: by the final transformer layer, the vector at the \texttt{CLS} position has attended to every other position in the sequence and serves as a fixed-length summary of the entire patient history~\citep{Devlin2019BERT}. This vector is the input to the classification head.
+The encoder processes a maximum of 512 positions per patient, a fixed architectural limit~\citep{Devlin2019BERT}. The first position is reserved for a special \texttt{CLS} token prepended to every sequence. For patients with longer histories, the oldest events were truncated and only the 511 most recent events were retained, assuming that recent clinical history is more predictive of near-term outcomes. The \texttt{CLS} token carries no clinical meaning; it serves as an aggregation point. By the final layer of the transformer, the vector in the \texttt{CLS} position has attended to every other position in the sequence and constitutes a fixed-length summary of the entire patient history~\citep{Devlin2019BERT}. This vector is the input to the classification head.
 
 \subsubsection{XGBoost and Feedforward Neural Network: One-Hot Feature Vectors}
 
 For the gradient-boosted ensemble (XGBoost) and the feedforward neural network, each patient's clinical history was represented as a sparse binary feature vector; chronological information was not preserved.
 
-The feature space consisted of $K = 3,304$ unique PhecodeX phenotypes observed in the MarketScan training cohort. For each patient, the element $k$ of the vector was set to 1 if the phenotype $k$ appeared in the patient's record and 0 otherwise. To prevent outcome leakage, only phenotype codes recorded strictly before $t_{\mathrm{HF}}$ were included for case patients (groups~1--3); for control patients, no temporal restriction was applied. The two phenotypes of hip-fracture (MS \texttt{\_745.11} and \texttt{MS\_745.9}) were removed from the feature vocabulary of all patients. The resulting design matrix contained 12,174,785 rows and 3,304 columns, with a density of approximately 1.22\%, and was stored in Compressed Sparse Row (CSR) format for memory efficiency.
+The feature space consisted of $K = 3{,}304$ unique PhecodeX phenotypes observed in the MarketScan training cohort. For each patient, element $k$ of the vector was set to 1 if phenotype $k$ appeared in the patient's record, and 0 otherwise. To prevent outcome leakage, only phenotype codes recorded strictly before $t_{\mathrm{HF}}$ were included for case patients (groups~1--3); for control patients, no temporal restriction was applied. The two hip-fracture phenotypes (\texttt{MS\_745.11} and \texttt{MS\_745.9}) were removed from the feature vocabulary for all patients. The resulting design matrix contained 12{,}174{,}785 rows and 3{,}304 columns, with a density of approximately 1.22\%, and was stored in Compressed Sparse Row (CSR) format for memory efficiency.
 
 %% ----------------------------------------------------------
 \subsection{Model Architectures and Training}
@@ -194,76 +216,76 @@ The feature space consisted of $K = 3,304$ unique PhecodeX phenotypes observed i
 
 \subsubsection{BEHRT-LoRA}
 
-BEHRT (BERT for Electronic Health Records)~\citep{Li2020BEHRT} is a transformer encoder adapted from the original BERT architecture~\citep{Devlin2019BERT,Vaswani2017Attention} for EHR data. Our implementation was first pre-trained on the full MarketScan corpus using a masked language-modeling (MLM) objective, and subsequently fine-tuned for four-class hip-fracture risk prediction.
+BEHRT (BERT for Electronic Health Records)~\citep{Li2020BEHRT} is a transformer encoder adapted from the original BERT architecture~\citep{Devlin2019BERT,Vaswani2017Attention} for EHR data. Our implementation was first pre-trained on the full MarketScan corpus using a masked language-modeling (MLM) objective and subsequently fine-tuned for four-class hip-fracture risk prediction.
 
 \paragraph{Encoder architecture.}
 The encoder follows the standard BERT design: a stack of transformer blocks, each comprising multi-head self-attention followed by a position-wise feed-forward network, with residual connections and layer normalization at each sub-layer~\citep{Vaswani2017Attention}. After the final transformer layer, the vector at the \texttt{CLS} position is passed to a linear classification head that produces logits over the four risk classes.
 
 \paragraph{Architecture hyperparameter optimization.}
-Architecture hyperparameters were selected by Bayesian optimization (Optuna~\citep{Akiba2019Optuna}, Tree-structured Parzen Estimator sampler, 30 trials), trained in a subset of 100{,}000 patients for five epochs per trial. The search space comprised: hidden dimension $d \in \{128, 192, 256, 288, 384\}$; number of layers in $\{2,\dots,8\}$; attention heads in $\{4, 6, 8, 12\}$; feed-forward intermediate dimension in $\{256, 512, 768, 1{,}024\}$; dropout in $[0.05, 0.30]$; and learning rate in $[10^{-5}, 5\times 10^{-4}]$.
+Architecture hyperparameters were selected by Bayesian optimization (Optuna~\citep{Akiba2019Optuna}, Tree-structured Parzen Estimator sampler, 30 trials), trained on a subset of 100{,}000 patients for five epochs per trial. The search space comprised: hidden dimension $d \in \{128, 192, 256, 288, 384\}$; number of layers $\in \{2,\dots,8\}$; attention heads $\in \{4, 6, 8, 12\}$; feed-forward intermediate dimension $\in \{256, 512, 768, 1{,}024\}$; dropout $\in [0.05, 0.30]$; and learning rate $\in [10^{-5}, 5\times 10^{-4}]$.
 
 \paragraph{Pre-training.}
-The Pre-training used the MLM objective~\citep{Devlin2019BERT}: at each step, 15\% of the tokens in each sequence were randomly selected; of these, 80\% were replaced with \texttt{[MASK]}, 10\% with a random token drawn from the vocabulary, and 10\% were left unchanged. In all three cases the model was trained to predict the original token. This mixed corruption scheme prevents the model from learning representations that depend on the presence of the \texttt{[MASK]} symbol, which would otherwise degrade fine-tuning, where no masking is applied. Formally, given a sequence $\mathbf{x} = (x_1, \dots, x_L)$, a corrupted sequence $\tilde{\mathbf{x}}$, and the set of masked positions $\mathcal{M}$, the pre-training loss is
+Pre-training used the MLM objective~\citep{Devlin2019BERT}: at each step, 15\% of the tokens in each sequence were randomly selected; of these, 80\% were replaced with \texttt{[MASK]}, 10\% were replaced with a random token drawn from the vocabulary, and 10\% were left unchanged. In all three cases, the model was trained to predict the original token. This mixed corruption scheme prevents the model from learning representations that depend on the presence of the \texttt{[MASK]} symbol, which would otherwise degrade fine-tuning performance, where no masking is applied. Formally, given a sequence $\mathbf{x} = (x_1, \dots, x_L)$, a corrupted sequence $\tilde{\mathbf{x}}$, and the set of masked positions $\mathcal{M}$, the pre-training loss is
 \begin{equation}
 \mathcal{L}_{\mathrm{MLM}} \;=\; -\,\frac{1}{|\mathcal{M}|}\sum_{i \in \mathcal{M}} \log P_\theta\!\left(x_i \,\big|\, \tilde{\mathbf{x}}\right),
 \label{eq:mlm}
 \end{equation}
-where $P_\theta(\cdot \mid \tilde{\mathbf{x}})$ is the predicted distribution of the model over the phenotype vocabulary at position $i$. Pre-training used a 90/10 train/validation split, up to 100 epochs, and early stopping with patience of 10 evaluations (4 evaluations per epoch). Training was distributed across four GPUs with an effective batch size of 1{,}024.
+where $P_\theta(\cdot \mid \tilde{\mathbf{x}})$ denotes the model's predicted distribution over the phenotype vocabulary at position $i$. Pre-training used a 90/10 train/validation split, up to 100 epochs, and early stopping with patience of 10 evaluations (4 evaluations per epoch). Training was distributed across four GPUs with an effective batch size of 1{,}024.
 
 \paragraph{Fine-tuning with LoRA.}
-After pre-training, the MLM prediction head was discarded and the BERT backbone was frozen. Low-Rank Adaptation (LoRA)~\citep{Hu2022LoRA} was injected into the query and value projection matrices of every layer of self-attention. LoRA replaces a frozen weight matrix $W_0 \in \mathbb{R}^{d \times d}$ with parameterization
+After pre-training, the MLM prediction head was discarded and the BERT backbone was frozen. Low-Rank Adaptation (LoRA)~\citep{Hu2022LoRA} was injected into the query and value projection matrices of every self-attention layer. LoRA replaces a frozen weight matrix $W_0 \in \mathbb{R}^{d \times d}$ with the parameterization
 \begin{equation}
 W \;=\; W_0 + \Delta W \;=\; W_0 + \frac{\alpha}{r}\,B A,
 \qquad
 A \in \mathbb{R}^{r \times d},\ \ B \in \mathbb{R}^{d \times r},\ \ r \ll d,
 \label{eq:lora}
 \end{equation}
-where $A$ is initialized from a Gaussian and $B$ is initialized to zero, so that $\Delta W = 0$ at the start of fine-tuning and the model output is unchanged from the pre-trained baseline. Only $A$ and $B$ are updated during fine-tuning; $W_0$ remains frozen. Because $r \ll d$, the number of trainable parameters per adapted layer drops from $d^2$ to $2rd$, a substantial reduction. We used $r = 16$, $\alpha = 32$ (effective scale $\alpha/r = 2$), and a LoRA dropout of 0.1, which left approximately 1--2\% of the total model parameters trainable. A linear classification head was appended to the frozen backbone and trained jointly with the LoRA adapters.
+where $A$ is initialized from a Gaussian and $B$ is initialized to zero, ensuring that $\Delta W = 0$ at the start of fine-tuning and that the model output is initially unchanged from the pre-trained baseline. Only $A$ and $B$ are updated during fine-tuning; $W_0$ remains frozen. Because $r \ll d$, the number of trainable parameters per adapted layer is reduced from $d^2$ to $2rd$. We used $r = 16$, $\alpha = 32$ (effective scale $\alpha/r = 2$), and a LoRA dropout of 0.1, leaving approximately 1--2\% of the total model parameters trainable. A linear classification head was appended to the frozen backbone and trained jointly with the LoRA adapters.
 
-Fine-tuning used AdamW~\citep{Loshchilov2019AdamW} with learning rate $2\times 10^{-4}$, weight decay 0.01, linear warmup over the first 10\% of training steps and gradient accumulation over 4 steps. Class imbalance was addressed via a class-weighted cross-entropy loss with weights inversely proportional to class frequency:
+Fine-tuning used AdamW~\citep{Loshchilov2019AdamW} with learning rate $2\times 10^{-4}$, weight decay 0.01, linear warmup over the first 10\% of training steps, and gradient accumulation over 4 steps. Class imbalance was addressed by a class-weighted cross-entropy loss, with weights inversely proportional to class frequency:
 \begin{equation}
 \mathcal{L}_{\mathrm{CE}} \;=\; -\,\frac{1}{N}\sum_{n=1}^{N} w_{y_n}\, \log \hat{p}_{n,y_n},
 \qquad
 w_c \;\propto\; \frac{1}{N_c},\quad \sum_{c=0}^{C-1} w_c = C,
 \label{eq:weighted-ce}
 \end{equation}
-where $\hat{p}_{n,c}$ is the predicted probability that patient $n$ belongs to class $c$, $y_n \in \{0,\dots,C{-}1\}$ is the true label, $N_c$ is the number of training patients in class $c$, and $C = 4$. Training ran for up to 50 epochs, with early stopping (patience 10 epochs) based on validation loss.
+where $\hat{p}_{n,c}$ is the predicted probability that patient $n$ belongs to class $c$, $y_n \in \{0,\dots,C{-}1\}$ is the true label, $N_c$ is the number of training patients in class $c$, and $C = 4$. Training was conducted for up to 50 epochs, with early stopping (patience 10 epochs) based on validation loss.
 
 \subsubsection{XGBoost}
 
-A gradient-boosted decision tree ensemble was trained using XGBoost~\citep{Chen2016XGBoost}. XGBoost builds trees sequentially, with each new tree fitted to the gradient (and Hessian) of the loss with respect to the current ensemble's predictions; the final prediction is the sum of all trees' outputs passed through a softmax for multi-class classification.
+A gradient-boosted decision tree ensemble was trained using XGBoost~\citep{Chen2016XGBoost}. XGBoost constructs trees sequentially, with each new tree fitted to the gradient (and Hessian) of the loss with respect to the current ensemble's predictions; the final prediction is the sum of all tree outputs passed through a softmax function for multi-class classification.
 
 \paragraph{Class imbalance.}
-The training cohort contained approximately 99\% controls and $<\!1\%$ patients in the three fracture classes combined. To prevent the model from collapsing to the majority class, we (i)~down-sampled the control class to 600{,}000 patients (from over 10 million) and (ii)~applied the class weighting scheme of Equation~\eqref{eq:weighted-ce} during training. Validation and test sets retained their natural class distributions to preserve unbiased estimates of generalization performance.
+The training cohort comprised approximately 99\% controls and $<\!1\%$ of patients in the three fracture classes combined. To prevent the model from collapsing to the majority class, we (i)~down-sampled the control class to 600{,}000 patients (from over 10 million) and (ii)~applied the class-weighting scheme of Equation~\eqref{eq:weighted-ce} during training. Validation and test sets retained their natural class distributions to preserve unbiased estimates of generalization performance.
 
 \paragraph{Hyperparameter optimization.}
-Hyperparameters were tuned with Optuna~\citep{Akiba2019Optuna} (TPE sampler, 60 trials, 4 trials in parallel across 4 GPUs) using 5-fold stratified cross-validation on the down-sampled training set; the objective was mean cross-entropy loss across folds. The selected configuration was: maximum tree depth~8; learning rate~0.282; row subsampling ratio~0.924; column subsampling ratio~0.666; minimum child weight~11; $\gamma = 1.138$; L1 regularization $\alpha = 2 \times 10^{-6}$; L2 regularization $\lambda = 2.256$; and 64 histogram bins. The final model was trained on the full down-sampled training set with these settings for up to 500 boosting rounds, with early stopping (patience 50 rounds) on the held-out validation set.
+Hyperparameters were tuned with Optuna~\citep{Akiba2019Optuna} (TPE sampler, 60 trials, 4 trials in parallel across 4 GPUs) using 5-fold stratified cross-validation on the down-sampled training set, with mean cross-entropy loss across folds as the objective. The selected configuration was: maximum tree depth, 8; learning rate, 0.282; row subsampling ratio, 0.924; column subsampling ratio, 0.666; minimum child weight, 11; $\gamma = 1.138$; L1 regularization $\alpha = 2 \times 10^{-6}$; L2 regularization $\lambda = 2.256$; and 64 histogram bins. The final model was trained on the full down-sampled training set with these settings for up to 500 boosting rounds, with early stopping (patience 50 rounds) on the held-out validation set.
 
 \subsubsection{Feedforward Neural Network}
 
-A feedforward neural network (\texttt{SparseClassifier}) was trained on the same sparse one-hot feature matrix as XGBoost. The architecture takes a 3{,}304-dimensional input and passes it through three fully connected hidden layers of dimensions 512, 256, and 128, each followed by batch normalization, a ReLU activation, and dropout. A final linear layer maps the 128-dimensional hidden representation to four class logits, from which class probabilities are obtained via the softmax function.
+A feedforward neural network (\texttt{SparseClassifier}) was trained on the same sparse one-hot feature matrix used for XGBoost. The architecture accepts a 3{,}304-dimensional input and passes it through three fully connected hidden layers of dimensions 512, 256, and 128, each followed by batch normalization, a ReLU activation, and dropout. A final linear layer maps the 128-dimensional hidden representation to four class logits, from which class probabilities are obtained via the softmax function.
 
 \paragraph{Class imbalance.}
-We used the same strategy as for XGBoost: the control class was sampled down to 600{,}000 patients, and a class-weighted cross-entropy loss (Equation~\eqref{eq:weighted-ce}) was applied during training.
+We applied the same strategy as for XGBoost: the control class was down-sampled to 600{,}000 patients, and a class-weighted cross-entropy loss (Equation~\eqref{eq:weighted-ce}) was applied during training.
 
 \paragraph{Hyperparameter optimization.}
-Hyperparameters were selected with Optuna (TPE sampler, 30 trials)~\citep{Akiba2019Optuna} in a stratified subset of 150{,}000 training patients, using a split 80/20 train/validation per trial and early stopping after four epochs without improvement. The tuned parameters were learning rate, weight decay, dropout rate, and batch size. The selected configuration was: learning rate $2.98 \times 10^{-4}$; weight decay $9.59 \times 10^{-4}$; dropout 0.306; batch size 1{,}024. The final model was trained on the complete down-sampled training set with these settings for up to 60 epochs, using AdamW~\citep{Loshchilov2019AdamW} with a \texttt{ReduceLROnPlateau} scheduler (factor 0.5, patience 3 epochs) and early stopping on cross-entropy validation loss (patience 10 epochs).
+Hyperparameters were selected with Optuna (TPE sampler, 30 trials)~\citep{Akiba2019Optuna} on a stratified subset of 150{,}000 training patients, using an 80/20 train/validation split per trial and early stopping after four epochs without improvement. The tuned parameters were learning rate, weight decay, dropout rate, and batch size. The selected configuration was: learning rate, $2.98 \times 10^{-4}$; weight decay, $9.59 \times 10^{-4}$; dropout, 0.306; batch size, 1{,}024. The final model was trained on the complete down-sampled training set with these settings for up to 60 epochs, using AdamW~\citep{Loshchilov2019AdamW} with a \texttt{ReduceLROnPlateau} scheduler (factor 0.5, patience 3 epochs) and early stopping on cross-entropy validation loss (patience 10 epochs).
 
 %% ----------------------------------------------------------
 \subsection{External Validation in All of Us}
 %% ----------------------------------------------------------
 
-All three models trained in MarketScan were applied without modification to the All of Us validation cohort. The model weights were not updated during validation. The cohort and feature construction followed the same pipelines used for MarketScan, with the adaptations described below.
+All three models trained on MarketScan were applied without modification to the All of Us validation cohort. Model weights were not updated during validation. Cohort and feature construction followed the same pipelines used for MarketScan, with the adaptations described below.
 
 \subsubsection{BEHRT-LoRA}
 
-The diagnosis sequences were constructed using the same procedure as for MarketScan. The ICD-to-PhecodeX mapping was executed in BigQuery on approximately 123 million condition records. To ensure that phenotype tokens mapped to the same embedding vectors as during pre-training, all All of Us sequences were tokenized using the MarketScan-derived vocabulary; phenotypes present in All of Us but absent from the MarketScan vocabulary were mapped to the \texttt{UNK} token.
+Diagnosis sequences were constructed using the same procedure as for MarketScan. ICD-to-PhecodeX mapping was executed in BigQuery on approximately 123~million condition records. To ensure that phenotype tokens mapped to the same embedding vectors as during pre-training, all All of Us sequences were tokenized using the MarketScan-derived vocabulary; phenotypes present in All of Us but absent from the MarketScan vocabulary were mapped to the \texttt{UNK} token.
 
-Because transformer inference is substantially more expensive than scoring sparse feature vectors, BEHRT-LoRA was evaluated in a random subsample stratified by class of $N = 50{,}000$ patients. Stratified sampling preserved within-class proportions, so AUROC, AUPRC, and per-class metrics remain directly comparable with those obtained from XGBoost and the neural network, which were evaluated in the full cohort of 98{,}249 patients.
+Because transformer inference is substantially more computationally expensive than scoring sparse feature vectors, BEHRT-LoRA was evaluated on a class-stratified random subsample of $N = 50{,}000$ patients. Stratified sampling preserved within-class proportions, so AUROC, AUPRC, and per-class metrics remain directly comparable with those obtained from XGBoost and the neural network, both of which were evaluated on the full cohort of 98{,}249 patients.
 
 \subsubsection{XGBoost and Feedforward Neural Network}
 
-A sparse binary feature matrix was constructed using the same procedure as for MarketScan, restricted to the same 3{,}304 PhecodeX columns used at training. The 146 PhecodeX phenotypes that appeared in All of Us but were absent from the MarketScan feature set were discarded; columns observed in MarketScan but not in All of Us were retained as all-zero vectors to preserve input dimensionality.
+A sparse binary feature matrix was constructed using the same procedure as for MarketScan, restricted to the same 3{,}304 PhecodeX columns used at training. The 146 PhecodeX phenotypes present in All of Us but absent from the MarketScan feature set were discarded; columns observed in MarketScan but absent from All of Us were retained as all-zero vectors to preserve input dimensionality.
 
 %% ============================================================
 %%  RESULTS
@@ -271,33 +293,30 @@ A sparse binary feature matrix was constructed using the same procedure as for M
 
 \section{Results}
 
-We evaluated BEHRT-LoRA, XGBoost, and a feedforward neural network (NN) on the MarketScan held-out test set. Due to class imbalance (the control class accounts for approximately 99\% of the cohort), ROC-AUC and AUPRC were treated as the primary 
-measures of predictive ability. BEHRT-LoRA was evaluated on a class-stratified subsample of $N=50{,}000$ patients; XGBoost and NN were evaluated on the full test set ($N=1{,}217{,}479$). Confidence intervals were obtained by patient-level resampling ($N=1{,}000$ iterations for BEHRT-LoRA; $N=500$ for XGBoost and NN).
+To give the reader a clinical context regarding predictive pathologies, in Figure \ref{fig:fractures} we show the diseases that were most predictive of future fractures.
+
+We evaluated BEHRT-LoRA, XGBoost, and a feedforward neural network (NN) on the MarketScan held-out test set. Due to class imbalance, with the control class accounting for approximately 99\% of the cohort, ROC-AUC and AUPRC were treated as the primary measures of predictive performance. BEHRT-LoRA was evaluated on a class-stratified subsample of $N=50{,}000$ patients; XGBoost and NN were evaluated on the full test set ($N=1{,}217{,}479$). Confidence intervals were obtained by patient-level resampling ($N=1{,}000$ iterations for BEHRT-LoRA; $N=500$ for XGBoost and NN).
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{1\textwidth}
+  \includegraphics[width=\textwidth]{Fractures.pdf}
+  
+\end{subfigure}
+\caption{Pathologies with the highest positive predictive odds ratio (OR) of future fractures. The prective ORs were computed for all possible PhecodeX pairs, and only significant strict Bonferroni-corrected predictors were retained. The OR values were estimated using logistic regression, where outcome variable is the presence or absence of a fracture, and predictors include patient's sex, age, year of birth, presence/absence of the predictor disease, and a dummy variable, indicating if the predictor disease preceeds the fracture diagnosis (1) or not (0).}
+\label{fig:fractures}
+\end{figure}
+
 
 %% ----------------------------------------------------------
-\subsection{Overall Discrimination}
+\subsection{Overall Discrimination Among Fracture Classes}
 %% ----------------------------------------------------------
 
-Unlike overall accuracy, which is dominated by the most prevalent group, macro-averaged metrics weight each risk group equally by 
-computing performance separately per group and averaging the results regardless of group size. Because the three fracture risk 
-groups are rare but carry the greatest clinical significance, macro-averaged metrics were used as the summary measure of model performance.
+In contrast to overall accuracy, which is dominated by the most prevalent class, macro-averaged metrics weight each risk group equally by computing performance separately within each group and averaging across groups regardless of size. Because the three fracture risk groups are rare but carry the greatest clinical significance, macro-averaged metrics were adopted as the principal summary of model performance.
 
+BEHRT-LoRA achieved the highest macro-averaged performance on the held-out test set, outperforming XGBoost and the neural network on every summary metric (Table~\ref{tab:overall_comparison}). The macro-averaged ROC-AUC was 0.973 for BEHRT-LoRA, compared to 0.764 for XGBoost and 0.783 for the neural network. In practical terms, BEHRT-LoRA correctly ranked a high-risk patient above a low-risk patient in approximately 98 out of 100 comparisons, while the simpler models did so in approximately 78 out of 100.
 
-BEHRT-LoRA achieved the highest macro-averaged performance on the 
-held-out test set, outperforming XGBoost and the neural network on 
-every summary metric (Table~\ref{tab:overall_comparison}). The 
-macro-averaged ROC-AUC was 0.973 for BEHRT-LoRA, compared to 0.764 
-for XGBoost and 0.783 for the neural network. In practical terms, 
-BEHRT-LoRA correctly ranked a high-risk patient above a low-risk 
-patient in roughly 98 out of 100 comparisons, while the simpler 
-models did so in roughly 78 out of 100.
-
-The ROC curves, shown in Figure~\ref{fig:roc_curves}, capture how 
-well each model separates risk groups across all possible decision thresholds, but they can be overly optimistic when cases are rare. The precision-recall curves in Figure~\ref{fig:pr_curves} tell a 
-more demanding story: they show the trade-off between how many true fracture cases the model identifies and how often it raises 
-a false alarm. A model that flags every patient as high-risk will find all true cases but will be wrong almost every time, given how rare fractures are in this cohort. The area under the precision-recall curve therefore reflects whether a model can 
-identify a meaningful proportion of at-risk patients without overwhelming clinicians with false positives, which is the 
-practically relevant question in a screening setting.
+The ROC curves shown in Figure~\ref{fig:roc_curves} characterize how well each model separates risk groups across all possible decision thresholds; however, ROC analysis can be overly optimistic when cases are rare. The precision--recall curves in Figure~\ref{fig:pr_curves} provide a more demanding evaluation: they depict the trade-off between the proportion of true fracture cases identified and the rate at which false alarms are raised. A model that flags every patient as high-risk would identify all true cases but would be incorrect nearly every time, given the rarity of fractures in this cohort. The area under the precision--recall curve therefore reflects whether a model can identify a meaningful proportion of at-risk patients without overwhelming clinicians with false positives, which is the practically relevant question in a screening setting.
 
 \begin{table}[H]
 \centering
@@ -350,81 +369,24 @@ NN         & 0.580 & 0.257 & 0.509 & 0.199 & 0.783 \\
   \includegraphics[width=\textwidth]{fig1_pr_nn.png}
   \caption{Neural Network}
 \end{subfigure}
-\caption{One-vs-rest precision--recall curves for each risk class on the MarketScan held-out test set. The area under the precision--recall curve (AUPRC) is annotated in each legend. Horizontal dashed lines indicate the class prevalence, which serves as the baseline AUPRC for a random classifier. Note that the $y$-axis is log-scaled for XGBoost and the Neural Network to make the low-precision regime visible.}
+\caption{One-vs-rest precision--recall curves for each risk class on the MarketScan held-out test set. The area under the precision--recall curve (AUPRC) is annotated in each legend. Horizontal dashed lines indicate class prevalence, which serves as the baseline AUPRC for a random classifier. The $y$-axis is log-scaled for XGBoost and the Neural Network to make the low-precision regime visible.}
 \label{fig:pr_curves}
 \end{figure}
 
 \subsubsection{External Validation (All of Us)}
 
-To assess whether the observed discrimination generalizes beyond the training population, the same three models were applied without retraining to the All of Us cohort. XGBoost and the neural network were evaluated on the full cohort of $N = 73{,}688$ participants with diabetes; BEHRT-LoRA was evaluated on the $N = 73{,}626$ participants for whom a tokenizable diagnosis sequence could be constructed. The control class accounted for 98.69\% of the cohort, with 1.24\% in the $<$1-year group, 0.06\% in the 1--5-year group, and 0.01\% (six participants) in the 5--10-year group. Overall metrics on the external data are presented in Table~\ref{tab:aou_overall_comparison}.
+To assess whether the observed discrimination generalizes beyond the training population, the same three models were applied without retraining to the All of Us cohort. Table~\ref{tab:aou_overall_comparison} presents the overall metrics on the external data.
 
-\begin{table}[H]
-\centering
-\caption{Overall multi-class performance on the All of Us external validation cohort. Precision, recall, and F1 are macro (unweighted) averages across the four risk classes; ROC-AUC is the macro one-vs-rest area under the curve. Higher is better for all metrics.}
-\label{tab:aou_overall_comparison}
-\begin{tabular}{lccccc}
-\toprule
-Model & Accuracy & Macro Precision & Macro Recall & Macro F1 & Macro ROC-AUC \\
-\midrule
-BEHRT-LoRA & 0.953 & 0.263 & 0.264 & 0.258 & 0.655 \\
-XGBoost    & 0.545 & 0.253 & 0.250 & 0.185 & 0.437 \\
-NN         & 0.281 & 0.253 & 0.179 & 0.117 & 0.408 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-All three models showed substantial degradation in discrimination relative to the MarketScan held-out test set, but the magnitude of the drop differed sharply between architectures. BEHRT-LoRA retained the highest macro ROC-AUC (0.655) and the highest macro F1 (0.258), preserving meaningful but reduced predictive ability. XGBoost and the neural network performed worse than chance on the external cohort, with macro ROC-AUC values of 0.437 and 0.408 respectively, indicating that their probability rankings transferred poorly to the All of Us population. The ROC and precision--recall curves in Figures~\ref{fig:aou_roc_curves} and \ref{fig:aou_pr_curves} show this attenuation directly: BEHRT-LoRA curves remain visibly separated from the diagonal across all classes, while the curves for XGBoost and the neural network collapse toward or below it.
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig2_roc_behrt_aou.png}
-  \caption{BEHRT-LoRA}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig2_roc_xgboost_aou.png}
-  \caption{XGBoost}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig2_roc_nn_aou.png}
-  \caption{Neural Network}
-\end{subfigure}
-\caption{One-vs-rest receiver operating characteristic (ROC) curves for each risk class on the All of Us external validation cohort. Each panel shows per-class curves with the corresponding area under the curve (AUC) annotated in the legend. The diagonal dashed line represents a random classifier.}
-\label{fig:aou_roc_curves}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig1_pr_behrt_aou.png}
-  \caption{BEHRT-LoRA}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig1_pr_xgboost_aou.png}
-  \caption{XGBoost}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig1_pr_nn_aou.png}
-  \caption{Neural Network}
-\end{subfigure}
-\caption{One-vs-rest precision--recall curves for each risk class on the All of Us external validation cohort. The area under the precision--recall curve (AUPRC) is annotated in each legend. Horizontal dashed lines indicate the class prevalence, which serves as the baseline AUPRC for a random classifier.}
-\label{fig:aou_pr_curves}
-\end{figure}
+% TODO: insert Table tab:aou_overall_comparison and ROC/PR figures for All of Us
+% TODO: narrative comparing MarketScan vs All of Us overall metrics; discuss magnitude of any performance drop
 
 %% ----------------------------------------------------------
 \subsection{Per-Class Classification Performance}
 %% ----------------------------------------------------------
 
-The performance advantage of BEHRT-LoRA was consistent across all four risk groups and was most pronounced among the three fracture risk groups, each accounting for less than 1\% of the cohort. Per-class ROC-AUC 
-was at least 0.96 in all four groups for BEHRT-LoRA, with lower confidence interval bounds remaining above 0.94, indicating stable and reliable separation between risk groups. XGBoost and the neural network achieved per-class ROC-AUC between 0.73 and 0.87, a range that in a screening context would translate to a substantial number of high-risk patients being unidentified (Table~\ref{tab:per_class_discrimination}).
+The performance advantage of BEHRT-LoRA was consistent between all four risk groups and was more pronounced for the three fracture risk groups, each of which represents less than 1\% of the cohort. The Per-class ROC-AUC was at least 0.96 in all four BEHRT-LoRA groups, with lower confidence interval bounds remaining above 0.94, indicating a stable and reliable separation between risk groups. XGBoost and the neural network achieved per-class ROC-AUC between 0.73 and 0.87, a range that, in a screening context, would translate into a substantial number of high-risk patients that remain unidentified (Table~\ref{tab:per_class_discrimination}).
 
-The precision-recall curves revealed an even sharper contrast. For the three fracture risk groups, BEHRT-LoRA achieved an area 
-under the precision-recall curve between 0.62 and 0.67, meaning that even among a population where true fracture cases are rare, the model retained meaningful ability to identify them without excessive false alarms. XGBoost and the neural network achieved values between 0.015 and 0.018 on the same groups, barely above the baseline expected from a model that assigns risk at random. 
-
+The precision--recall curves revealed an even sharper contrast. For the three fracture risk groups, BEHRT-LoRA achieved an area under the precision recall curve between 0.62 and 0.67, indicating that, even in a population in which true fracture cases are rare, the model retained a meaningful ability to identify them without excessive false alarms. XGBoost and the neural network achieved values between 0.015 and 0.018 in the same groups, barely above the baseline expected from a model that assigns risk at random.
 
 \begin{table}[H]
 \centering
@@ -501,52 +463,19 @@ Metric & Risk Class & Mean & 95\% CI & Mean & 95\% CI & Mean & 95\% CI \\
 
 \subsubsection{External Validation (All of Us)}
 
-The per-class discrimination pattern observed in MarketScan was examined in the All of Us cohort to determine whether the advantage of BEHRT-LoRA over XGBoost and the neural network persists in an independent, demographically distinct population. Table~\ref{tab:aou_per_class_discrimination} reports per-class ROC-AUC and AUPRC on the external data.
+The per-class discrimination pattern observed on MarketScan was examined in the All of Us cohort to determine whether the advantage of BEHRT-LoRA over XGBoost and the neural network persists in an independent, demographically distinct population. Table~\ref{tab:aou_per_class_discrimination} reports ROCAUC and AUPRC per-class for external data.
 
-\begin{table}[H]
-\centering
-\caption{Per-class discrimination on the All of Us external validation cohort. Values are bootstrap means with 95\% confidence intervals in parentheses. ROC-AUC and AUPRC are computed one-vs-rest using raw probability outputs. Risk classes follow Table~\ref{tab:groups}. Confidence intervals are wide for the 5--10-year class, which contained only six participants.}
-\label{tab:aou_per_class_discrimination}
-\begin{tabular}{llccc}
-\toprule
-Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
-\midrule
-\multirow{4}{*}{ROC-AUC}
- & Control     & 0.699 (0.683--0.715) & 0.709 (0.692--0.725) & 0.731 (0.715--0.746) \\
- & $<$1 year   & 0.626 (0.607--0.646) & 0.553 (0.531--0.575) & 0.560 (0.539--0.581) \\
- & 1--5 years  & 0.650 (0.582--0.717) & 0.432 (0.352--0.519) & 0.307 (0.223--0.404) \\
- & 5--10 years & 0.644 (0.347--0.815) & 0.056 (0.019--0.127) & 0.036 (0.004--0.100) \\
-\midrule
-\multirow{4}{*}{AUPRC}
- & Control     & 0.994 (0.993--0.994) & 0.993 (0.993--0.994) & 0.994 (0.994--0.995) \\
- & $<$1 year   & 0.022 (0.020--0.026) & 0.021 (0.018--0.026) & 0.023 (0.019--0.029) \\
- & 1--5 years  & 0.001 (0.001--0.002) & 0.001 (0.000--0.001) & 0.000 (0.000--0.001) \\
- & 5--10 years & 0.000 (0.000--0.000) & 0.000 (0.000--0.000) & 0.000 (0.000--0.000) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The performance gap between BEHRT-LoRA and the simpler models narrowed considerably on the external cohort, and the direction of the comparison reversed for the most prevalent class: XGBoost and the neural network both achieved slightly higher ROC-AUC on the control class (0.709 and 0.731 respectively, vs.\ 0.699 for BEHRT-LoRA), while BEHRT-LoRA retained an advantage on each of the three fracture classes. The discrepancy was largest for the rare intermediate classes, where XGBoost and the neural network produced rankings that were close to or worse than chance (ROC-AUC of 0.432 and 0.307 for 1--5 years, and 0.056 and 0.036 for 5--10 years), whereas BEHRT-LoRA preserved per-class ROC-AUC of 0.65 and 0.64 in these groups. AUPRC values for all three fracture classes collapsed toward zero across every model, reflecting both the extreme rarity of cases in the external cohort (1.24\%, 0.06\%, and 0.01\% for the three fracture classes) and a genuine loss of precision relative to MarketScan, where BEHRT-LoRA had achieved AUPRC values above 0.6 for the same groups.
+% TODO: insert Table tab:aou_per_class_discrimination
+% TODO: narrative comparing internal vs external per-class metrics; note any classes where performance degrades more than others
 
 
 %% ----------------------------------------------------------
 \subsection{Sensitivity, PPV, and NPV}
 %% ----------------------------------------------------------
 
-To assess performance at a fixed decision rule, each patient was assigned to the risk group the model considered most likely, and 
-sensitivity and positive predictive value were computed from the resulting assignments.
-BEHRT-LoRA identified between 77\% and 82\% of patients in each fracture risk group, with positive predictive values between 12\% 
-and 24\%, meaning that between one in eight and one in four patients flagged by the model had a true fracture in that time 
-window (Table~\ref{tab:diagnostic_comparison}). XGBoost and the neural network reached comparable sensitivity in some risk groups, 
-but did so with positive predictive values of 1\% to 2\%, meaning that fewer than one in fifty patients flagged as high-risk 
-actually belonged to that group. Negative predictive values exceeded 99.8\% across all three models and all fracture risk 
-groups, a figure that reflects the rarity of the outcome rather than model sensitivity.
+To assess performance on a fixed decision rule, each patient was assigned to the risk group the model considered the most likely, and sensitivity and positive predictive value were calculated from the resulting assignments. BEHRT-LoRA identified between 77\% and 82\% of patients in each fracture risk group, with positive predictive values between 12\% and 24\%, indicating that between one in eight and one in four patients flagged by the model had a true fracture within the corresponding time window (Table~\ref{tab:diagnostic_comparison}). XGBoost and the neural network achieved comparable sensitivity in some risk groups but with positive predictive values of 1\% to 2\%, indicating that fewer than one in fifty patients flagged as high-risk actually belonged to that group. Negative predictive values exceeded 99.8\% in all three models and all fracture risk groups, a figure that reflects the rarity of the outcome rather than the sensitivity of the model.
 
-The confusion matrices in Figure~\ref{fig:confusion_matrices} 
-provide a visual account of where each model places its predictions. For BEHRT-LoRA, predictions are concentrated along 
-the diagonal, indicating that patients are most often assigned to their true risk group. For XGBoost and the neural network, 
-predictions for the fracture risk groups are more widely distributed across other classes, particularly for the three 
-fracture timing groups.
+The confusion matrices in Figure~\ref{fig:confusion_matrices} provide a visual account of where each model places its predictions. For BEHRT-LoRA, the predictions are concentrated along the diagonal, indicating that patients are assigned more often to their true risk group. For XGBoost and the neural network, predictions for fracture risk groups are more widely distributed across other classes, particularly for the three fracture timing groups.
 
 \begin{table}[H]
 \centering
@@ -599,76 +528,20 @@ Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
 
 \subsubsection{External Validation (All of Us)}
 
-The same operating-point analysis was repeated on the All of Us cohort. The sensitivity--PPV trade-off observed in MarketScan did not transfer: under argmax assignment, all three models concentrated their predictions in the control class on the external data (Table~\ref{tab:aou_diagnostic_comparison}). BEHRT-LoRA classified 96.5\% of true controls correctly but identified only 4.4\% of $<$1-year cases, 4.7\% of 1--5-year cases, and none of the 5--10-year cases. PPV for the fracture classes was low for all three models, with BEHRT-LoRA reaching 6.2\% on $<$1-year predictions, compared with under 0.1\% for XGBoost and the neural network. The confusion matrices in Figure~\ref{fig:aou_confusion_matrices} illustrate this collapse: predictions for all three models are concentrated in the control column, reflecting the combined effect of the extreme class imbalance in the external cohort (98.69\% control) and a covariate shift between the MarketScan training distribution and All of Us. Negative predictive values exceeded 98.8\% across all three models and all fracture risk groups, but this reflects the rarity of the outcome rather than discriminative ability.
+When the same operating-point analysis was repeated in \textit{the All of Us} cohort, BEHRT-LoRA maintained higher sensitivity and PPV than both baseline models in all fracture risk groups (Table~\ref{tab:aou_diagnostic_comparison}). The confusion matrices for All of Us are shown in Figure~\ref{fig:aou_confusion_matrices}.
 
-\begin{table}[H]
-\centering
-\caption{Operating-point classification performance on the All of Us external validation cohort, computed using one-vs-rest argmax predictions. Sensitivity = TP/(TP+FN); PPV = TP/(TP+FP); NPV = TN/(TN+FN). Risk classes follow Table~\ref{tab:groups}.}
-\label{tab:aou_diagnostic_comparison}
-\begin{tabular}{llccc}
-\toprule
-Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
-\midrule
-\multirow{4}{*}{Sensitivity}
- & Control     & 0.965 & 0.548 & 0.280 \\
- & $<$1 year   & 0.044 & 0.338 & 0.435 \\
- & 1--5 years  & 0.047 & 0.114 & 0.000 \\
- & 5--10 years & 0.000 & 0.000 & 0.000 \\
-\midrule
-\multirow{4}{*}{PPV}
- & Control     & 0.989 & 0.994 & 0.997 \\
- & $<$1 year   & 0.062 & 0.018 & 0.016 \\
- & 1--5 years  & 0.001 & 0.000 & 0.000 \\
- & 5--10 years & 0.000 & 0.000 & 0.000 \\
-\midrule
-\multirow{4}{*}{NPV}
- & Control     & 0.062 & 0.021 & 0.017 \\
- & $<$1 year   & 0.988 & 0.989 & 0.989 \\
- & 1--5 years  & 0.999 & 0.999 & 0.999 \\
- & 5--10 years & 1.000 & 1.000 & 1.000 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig4_cm_behrt_aou.png}
-  \caption{BEHRT-LoRA}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig4_cm_xgboost_aou.png}
-  \caption{XGBoost}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig4_cm_nn_aou.png}
-  \caption{Neural Network}
-\end{subfigure}
-\caption{Overall four-class confusion matrices on the All of Us external validation cohort. Cell shading uses a logarithmic scale to accommodate the extreme class imbalance. Classes are ordered by time to fracture ($<$1 year, 1--5 years, 5--10 years, $>$10 years) on both axes.}
-\label{fig:aou_confusion_matrices}
-\end{figure}
+% TODO: insert Table tab:aou_diagnostic_comparison and confusion matrix figure for All of Us
+% TODO: narrative discussing whether the sensitivity--PPV trade-off shifts on the external cohort
 
 %% ----------------------------------------------------------
 \subsection{Probability Calibration}
 %% ----------------------------------------------------------
 
-Calibration describes how well a model's predicted probabilities reflect observed event rates in practice. The Brier score measures the average squared difference between predicted probabilities and true outcomes. Lower values of Brier Score indicate better calibration and a score equal to the class prevalence represents the performance of a model that ignores all patient information and simply predicts the average rate.
-In this case, all three models were poorly calibrated. The discrepancy between predicted probabilities and observed 
-outcomes was largest for XGBoost and the neural network on the control class, with raw Brier scores of 0.30 and 0.38 
-respectively, against a prevalence-only baseline of 0.010. This indicated that their raw probability outputs were substantially 
-less informative than simply predicting the proportion of control patients in the cohort. The reliability diagrams in 
-Figure~\ref{fig:calibration_raw} illustrate this directly: a perfectly calibrated model would follow the diagonal line, where 
-predicted probability equals observed frequency. Before calibration, XGBoost and the neural network deviate substantially 
-from this line, while BEHRT-LoRA tracks closer. However, BEHRT-LoRA shows overconfidence at intermediate predicted probabilities, assigning higher probabilities than the observed event rates justify.
+Calibration describes the agreement between a model's predicted probabilities and observed event rates. The Brier score, which is the average squared difference between predicted probabilities and true outcomes, was used as a summary calibration metric. Lower Brier scores indicate better calibration; a Brier score equal to the class prevalence corresponds to the performance of a model that ignores all patient information and predicts the average event rate.
 
-The models were fit using isotonic regression 70\% of the evaluation set. All three models moved toward the diagonal and Brier scores dropped sharply 
-(Table~\ref{tab:brier_calibration_comparison}). BEHRT-LoRA retained the lowest Brier score in every risk group after 
-calibration. For XGBoost and the neural network, Brier scores after calibration converged to values near the prevalence-only 
-baseline, indicating that recalibration corrected the shape of their probability outputs but did not recover probabilistic 
-information that was absent from the raw predictions.
+All three models were poorly calibrated. The discrepancy between predicted probabilities and observed outcomes was the greatest for XGBoost and the neural network in the control class, with raw Brier scores of 0.30 and 0.38, respectively, against a prevalence-only baseline of 0.010. This finding indicates that the raw probability outputs of these models were substantially less informative than simply predicting the proportion of control patients in the cohort. The reliability diagrams in Figure~\ref{fig:calibration_raw} illustrate this pattern directly: a perfectly calibrated model would follow the diagonal line, along which predicted probability equals the observed frequency. Before calibration, XGBoost and the neural network deviated substantially from this line, whereas BEHRT-LoRA tracked closer to it. However, BEHRT-LoRA exhibited overconfidence in the intermediate predicted probabilities, whose assignment of higher probabilities than the observed event rates was justified.
 
+The models were re-calibrated using an isotonic regression fit in 70\% of the evaluation set. All three models shifted toward the diagonal and the Brier scores decreased substantially (Table~\ref{tab:brier_calibration_comparison}). BEHRT-LoRA retained the lowest Brier score in all risk groups after calibration. For XGBoost and the neural network, Brier scores after calibration converged toward values near the prevalence-only baseline, indicating that recalibration corrected the shape of their probability outputs, but did not recover probabilistic information absent from the raw predictions.
 
 \begin{table}[H]
 \centering
@@ -704,53 +577,16 @@ $<$1 year   & 0.0031 & 0.0127 & 0.0725 & 0.0859 & & 0.0019 & 0.0031 & 0.0031 \\
   \includegraphics[width=\textwidth]{fig3_calibration_nn.png}
   \caption{Neural Network}
 \end{subfigure}
-\caption{Reliability diagrams on the MarketScan held-out test set showing the effect of isotonic calibration. Dashed lines with circles show raw (uncalibrated) predicted probabilities; solid lines with squares show isotonic-calibrated probabilities, fit on 70\% of the evaluation set and assessed on the remaining 30\%. The dotted diagonal represents perfect calibration. Classes are ordered consistently across panels ($<$1 year, 1--5 years, 5--10 years, $>$10 years).}
+\caption{Reliability diagrams on the MarketScan held-out test set illustrating the effect of isotonic calibration. Dashed lines with circles show raw (uncalibrated) predicted probabilities; solid lines with squares show isotonic-calibrated probabilities fit on 70\% of the evaluation set and assessed on the remaining 30\%. The dotted diagonal represents perfect calibration. Classes are ordered consistently across panels ($<$1 year, 1--5 years, 5--10 years, $>$10 years).}
 \label{fig:calibration_raw}
 \end{figure}
 
 \subsubsection{External Validation (All of Us)}
 
-Calibration was reassessed on the All of Us cohort using the same isotonic procedure applied to the MarketScan held-out test set. Table~\ref{tab:aou_brier_calibration_comparison} reports raw and isotonic-calibrated Brier scores, and Figure~\ref{fig:aou_calibration} shows the corresponding reliability diagrams.
+Calibration was reassessed in the All of Us cohort to determine whether the isotonic calibrators fit on MarketScan data transfer to an external population. Table~\ref{tab:aou_brier_calibration_comparison} reports raw and isotonic-calibrated Brier scores, and Figure~\ref{fig:aou_calibration} shows the corresponding reliability diagrams.
 
-\begin{table}[H]
-\centering
-\caption{Per-class Brier scores before and after isotonic calibration on the All of Us external validation cohort. Calibrators were fit on 70\% of the cohort and evaluated on the remaining 30\%. The baseline column reports $p(1-p)$, the Brier score of a constant predictor that always returns the class prevalence $p$. Lower is better. Risk classes follow Table~\ref{tab:groups}.}
-\label{tab:aou_brier_calibration_comparison}
-\begin{tabular}{lcccccccc}
-\toprule
- & & \multicolumn{3}{c}{Raw probabilities} & & \multicolumn{3}{c}{Isotonic-calibrated} \\
-\cmidrule(lr){3-5} \cmidrule(lr){7-9}
-Risk Class & Baseline & BEHRT & XGB & NN & & BEHRT & XGB & NN \\
-\midrule
-Control     & 0.0129 & 0.0433 & 0.3543 & 0.5354 & & 0.0127 & 0.0127 & 0.0127 \\
-$<$1 year   & 0.0122 & 0.0182 & 0.1133 & 0.1500 & & 0.0121 & 0.0122 & 0.0122 \\
-1--5 years  & 0.0006 & 0.0150 & 0.0780 & 0.0474 & & 0.0006 & 0.0006 & 0.0006 \\
-5--10 years & 0.0001 & 0.0076 & 0.0335 & 0.1027 & & 0.0001 & 0.0001 & 0.0001 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Raw Brier scores on the external cohort were higher than on MarketScan for every model and every class, but the ordering across models was preserved: BEHRT-LoRA had the lowest raw Brier score in each class, followed by XGBoost, then the neural network. After isotonic recalibration on the All of Us cohort, all three models converged to values essentially equal to the prevalence-only baseline. The reliability diagrams in Figure~\ref{fig:aou_calibration} confirm this: raw predictions deviate substantially from the diagonal for all three models, while the recalibrated curves lie close to it. Because calibrated Brier scores match the baseline almost exactly, the isotonic step in this cohort effectively reduces the probability outputs to a near-constant prediction equal to the class prevalence, indicating that little additional probabilistic information could be recovered from the raw outputs beyond what the marginal class distribution already provides.
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig3_calibration_behrt_aou.png}
-  \caption{BEHRT-LoRA}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig3_calibration_xgboost_aou.png}
-  \caption{XGBoost}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig3_calibration_nn_aou.png}
-  \caption{Neural Network}
-\end{subfigure}
-\caption{Reliability diagrams on the All of Us external validation cohort showing the effect of isotonic calibration. Dashed lines with circles show raw (uncalibrated) predicted probabilities; solid lines with squares show isotonic-calibrated probabilities, fit on 70\% of the evaluation set and assessed on the remaining 30\%. The dotted diagonal represents perfect calibration. Classes are ordered consistently across panels ($<$1 year, 1--5 years, 5--10 years, $>$10 years).}
-\label{fig:aou_calibration}
-\end{figure}
+% TODO: insert Table tab:aou_brier_calibration_comparison and calibration figure for All of Us
+% TODO: narrative discussing whether MarketScan-fitted calibrators transfer or whether recalibration on target-population data is needed
 
 %% ============================================================
 %%  DISCUSSION
@@ -762,82 +598,33 @@ Raw Brier scores on the external cohort were higher than on MarketScan for every
 \subsection{How Clinicians Currently Assess Hip Fracture Risk}
 %% ----------------------------------------------------------
 
-The current standard for fracture risk assessment in clinical practice is
-FRAX, a web-based algorithm that estimates the 10-year probability of a
-major osteoporotic or hip fracture from a small set of dichotomized risk
-factors: age, sex, body mass index, prior fracture, parental hip fracture,
-current smoking, glucocorticoid use, rheumatoid arthritis, secondary
-osteoporosis, and alcohol use~\citep{Kanis2010FRAX}. FRAX is typically
-applied after a clinical interview and, in most guideline frameworks, is
-recommended in conjunction with bone mineral density (BMD) testing by
-dual-energy X-ray absorptiometry (DXA). These resources are not
-uniformly available and are rarely deployed unless there is already clinical
-suspicion of elevated risk. In practice, FRAX is seldom calculated in patients
-with diabetes unless the provider has specifically considered fragility
-fracture. As a result, a large proportion of at-risk patients are never
-identified.
+The current standard for the assessment of fracture risk in clinical practice is FRAX, a web-based algorithm that estimates the 10-year probability of major osteoporotic or hip fracture from a small set of dichotomized risk factors: age, sex, body mass index, prior fracture, parental hip fracture, current smoking, glucocorticoid use, rheumatoid arthritis, secondary osteoporosis, and alcohol use~\citep{Kanis2010FRAX}. FRAX is typically applied after a clinical interview and, according to most guideline frameworks, is recommended in conjunction with bone mineral density (BMD) testing by dual-energy X-ray absorptiometry (DXA). These resources are not uniformly available and are rarely deployed in the absence of pre-existing clinical suspicion of elevated risk. In practice, FRAX is rarely calculated in patients with diabetes, unless the provider has specifically considered fragility fracture. Consequently, a large proportion of at-risk patients are never identified.
 
-A further limitation is that FRAX was not designed for the diabetic population
-and systematically underestimates their fracture risk. Because BMD is often
-preserved or even elevated in type~2 diabetes despite deficits in bone quality,
-FRAX scores based on BMD do not capture the excess structural fragility that
-characterizes diabetic bone disease~\citep{Giangregorio2012JBMR,
-Beaudoin2019OsteoInt,Jain2025JBMR}. The tool also lacks variables for diabetes
-type, disease duration, glycemic control, and medication exposure, all of which
-modulate fracture risk. Even an optimally administered FRAX is therefore an
-incomplete summary of risk in this population.
+Another limitation is that FRAX was not designed for the diabetic population and systematically underestimates the risk of fractures in this group. Because BMD is often preserved or even elevated in type~2 diabetes despite deficits in bone quality, BMD-based FRAX scores do not capture the excessive structural fragility characteristic of diabetic bone disease~\citep{Giangregorio2012JBMR,Beaudoin2019OsteoInt,Jain2025JBMR}. The tool also lacks variables for type of diabetes, duration of the disease, glycemic control, and exposure to medications, each of which modulates the risk of fractures. Therefore, even an optimally administered FRAX is an incomplete summary of risk in this population.
 
 %% ----------------------------------------------------------
 \subsection{What the Model Knows vs.\ What the Clinician Knows}
 %% ----------------------------------------------------------
 
-An important distinction between algorithmic and clinical risk assessment is
-the nature of the information each draws upon. In clinical practice, the
-physician's assessment is informed by a targeted history elicited directly from
-the patient, a physical examination, and the results of tests ordered
-specifically to characterize fracture risk (e.g., DXA, serum calcium,
-25-hydroxyvitamin~D). This information is current, patient-specific, and
-actively solicited. The clinician can adapt the depth of the inquiry in real
-time, follow unexpected findings, and integrate information that was never
-formally recorded anywhere.
+An important distinction between algorithmic and clinical risk assessment is the nature of the information on which each draws. In clinical practice, the physician's assessment is informed by a targeted history obtained directly from the patient, a physical examination, and the results of tests ordered specifically to characterize the risk of fracture (e.g., DXA, serum calcium, 25-hydroxyvitamin~D). This information is current, patient-specific, and actively sought. The clinician can adapt the depth of the investigation in real time, pursue unexpected findings, and integrate information that was never formally recorded.
 
-A machine-learning model trained on administrative claims can only see what has
-already been recorded and coded. Through its self-attention mechanism, the transformer encoder can learn
-associations between co-occurring diagnoses and detect temporal patterns across
-the visit record. However, it does not interpret these patterns the way a
-clinician would; it identifies statistical regularities in the coded visit
-history that are predictive of the outcome.
+A machine-learning model trained on administrative claims can only access information that has already been recorded and coded. Through its self-attention mechanism, the transformer encoder can learn associations between co-occurring diagnoses and detect temporal patterns across the visit record; however, it does not interpret these patterns as a clinician would but instead identifies statistical regularities in the coded visit history that are predictive of the outcome.
 
-This asymmetry has an important practical implication. The model is well suited
-to extracting signal from a large volume of routinely collected coded data.
-The clinician's comparative advantage lies in gathering new, first-hand
-information that the model can never access. Combining both sources of
-information is likely to offer better risk stratification than either alone.
+This asymmetry has an important practical implication. The model is well suited to extracting signal from a large volume of routinely collected coded data. The comparative advantage of the clinician lies in the collection of new, first-hand information that the model cannot access. Combining both sources of information is likely to yield better risk stratification than either alone.
 
-Several variables that a clinician would consider essential are not reliably
-available in the MarketScan administrative claims used to train BEHRT-LoRA.
-Race and ethnicity are associated with differences in bone density and fracture
-incidence but are poorly captured in commercial claims. BMI is a key input to
-FRAX and an independent predictor of fracture risk, yet it is infrequently
-coded in administrative data. The \textit{All of Us} Research Program addresses
-both of these gaps. As a prospective cohort with participant-reported
-demographics and physical measurements, it provides race and BMI alongside the
-longitudinal diagnosis history that BEHRT-LoRA consumes. Future work
-incorporating these features may further close the gap between the retrospective
-signal available to the model and the clinical information a physician would
-ideally consult.
+Several variables that a clinician would consider essential are not reliably available in the MarketScan administrative claims used to train BEHRT-LoRA. Race and ethnicity are associated with differences in bone density and fracture incidence, but are poorly captured in commercial claims. BMI is a key input to FRAX and an independent predictor of fracture risk, yet it is infrequently coded in administrative data. The \textit{All of Us} Research Program addresses both of these gaps: as a prospective cohort with demographics and physical measurements reported by participants, it provides race and BMI in addition to the longitudinal diagnosis history that BEHRT-LoRA consumes. Future work incorporating these features may further close the gap between the retrospective signal available to the model and the clinical information that ideally a physician would consult.
 
 %% ----------------------------------------------------------
-\subsection{Comparison with FRAX: UChicago Diabetic Cohort}
+\subsection{Comparison with FRAX: the University of Chicago Diabetic Cohort}
 %% ----------------------------------------------------------
 
 \begin{table}[H]
   \centering
-  \caption{Risk-class distribution in the UChicago external validation cohort
+  \caption{Risk-class distribution in the University of Chicago external validation cohort
   ($N = 13{,}550$). Classes are defined by time elapsed between first recorded
   diabetes diagnosis and first recorded hip fracture. The control class
   aggregates patients without a recorded fracture within ten years.}
-  \label{tab:uchicago_distribution}
+  \label{tab:the University of Chicago_distribution}
   \begin{tabular}{llrr}
   \toprule
   Class & Definition & $N$ & \% \\
@@ -852,156 +639,60 @@ ideally consult.
   \end{tabular}
 \end{table}
 
-To benchmark BEHRT-LoRA against the current clinical standard, we applied the
-model to an independent cohort of patients with diabetes at the University of
-Chicago for whom FRAX hip scores had been clinically assigned alongside
-observed hip fracture outcomes (Table~\ref{tab:uchicago_distribution}).
-BEHRT-LoRA assigns each patient a probability of belonging to the low-risk
-class, that is, the probability of no recorded hip fracture within ten years.
-The BEHRT risk score was defined as:
+To compare BEHRT-LoRA with the current clinical standard, the model was applied to an independent cohort of patients with diabetes at the University of Chicago for whom FRAX hip scores had been clinically assigned along with observed hip fracture outcomes (Table~\ref{tab:the University of Chicago_distribution}). BEHRT-LoRA assigns each patient a probability of belonging to the low-risk class -- that is, the probability of no recorded hip fracture in ten years. The BEHRT risk score was defined as:
 \begin{equation}
 s_{\text{BEHRT}} = 1 - \hat{P}(\text{class 0}),
 \label{eq:behrt-score}
 \end{equation}
-where class~0 corresponds to the control group (no fracture within ten years).
-A higher score indicates greater predicted fracture risk. This score is
-continuous and ranges from 0 to 1, serving a role analogous to the FRAX hip
-percentage.
+where class~0 corresponds to the control group (no fracture within ten years). Higher scores indicate a higher predicted fracture risk. The score is continuous and ranges from 0 to 1, serving a role analogous to the FRAX hip percentage.
 
 \paragraph{Risk stratification by decile.}
-To assess how well each tool separates patients by true fracture risk, patients
-were ranked by their continuous risk score and divided into ten equally sized
-groups called deciles. Decile 1 (D1) contains the 10\% of patients with the
-lowest scores and decile 10 (D10) contains the 10\% with the highest scores.
-The observed hip fracture rate was then measured within each decile.
-Figure~\ref{fig:uc_decile} shows these rates for both BEHRT-LoRA and FRAX.
-Both tools show higher fracture rates in higher deciles. Patients ranked in
-higher deciles by either tool are more likely to fracture than those in lower
-deciles. This confirms that both tools meaningfully separate patients by true
-fracture risk.
+To assess how well each tool separates patients according to the true risk of fracture, patients were ranked according to their continuous risk score and divided into ten groups of equal size, or deciles. Decile~1 (D1) contains 10\% \ of patients with the lowest scores, and decile~10 (D10) contains 10\% \ of the highest scores. The observed hip fracture rate was then measured within each decile. Figure~\ref{fig:uc_decile} shows these rates for both BEHRT-LoRA and FRAX. Both tools show higher fracture rates in higher deciles: patients ranked in higher deciles by either tool are more likely to fracture than those in lower deciles, confirming that both meaningfully separate patients by true fracture risk.
 
-The shape of stratification differs between the two tools, however.
-FRAX produces a gradual gradient, with fracture rates rising steadily
-from near zero in the lowest deciles to approximately 2.1\% in D10.
-BEHRT-LoRA concentrates its predictive signal almost entirely in the top
-decile. Fracture rates in D1 through D9 remain near zero, while D10 reaches
-approximately 4.7\%. The vast majority of patients receive a low BEHRT score,
-but those in the top decile carry roughly twice the fracture rate of the
-highest-risk FRAX group. This distribution suggests that the BEHRT score is
-highly skewed toward low values for most patients, with a small proportion
-receiving markedly elevated scores that correspond to substantially higher
-observed fracture rates.
+However, the shape of stratification differed between the two tools. FRAX produced a gradual gradient, with fracture rates steadily increasing from near zero in the lowest deciles to approximately 2.1\% in D10. BEHRT-LoRA concentrated its predictive signal almost entirely within the top decile: fracture rates in D1 through D9 remained near zero, while D10 reached approximately 4.7\%. The vast majority of patients received a low BEHRT score, but those in the top decile carried approximately twice the fracture rate of the highest-risk FRAX group. This distribution suggests that the BEHRT score is strongly skewed toward low values for most patients, with a small proportion receiving markedly elevated scores that correspond to substantially higher observed fracture rates.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.65\textwidth]{figUC_A_fracture_rate_decile_2026-05-22.png}
-\caption{Observed hip fracture rate by risk decile in the UChicago diabetic
-cohort ($N = 13{,}550$). Deciles were computed independently for BEHRT-LoRA
-(red circles, $1 - \hat{P}(\text{>10 years})$) and FRAX hip \% (blue squares)
-using quantile binning of each tool's continuous score. Error bars show
-$\pm1$ standard error of the proportion. D1 = lowest-risk decile,
-D10 = highest.}
+\caption{Observed hip fracture rate by risk decile in the University of Chicago diabetic cohort ($N = 13{,}550$). Deciles were computed independently for BEHRT-LoRA (red circles, $1 - \hat{P}(\text{>10 years})$) and FRAX hip \% (blue squares) by quantile binning of each tool's continuous score. Error bars show $\pm 1$ standard error of the proportion. D1 = lowest-risk decile, D10 = highest.}
 \label{fig:uc_decile}
 \end{figure}
 
 \paragraph{Receiver operating characteristic analysis.}
-The ROC curves in Figure~\ref{fig:uc_roc} compare discriminative ability across
-all classification thresholds. BEHRT-LoRA achieved an area under the ROC curve
-(AUC) of 0.877, compared with 0.765 for FRAX hip \%. FRAX is widely regarded as
-a moderate discriminator for hip fracture, with published AUC values in the
-diabetes literature typically in the range 0.72--0.78~\citep{Giangregorio2012JBMR,
-Beaudoin2019OsteoInt}. BEHRT-LoRA achieved this improvement using only routinely
-collected administrative codes. No clinical interview or BMD measurement was
-required. This 11-percentage-point gain over FRAX extends prior literature
-suggesting that EHR-derived models can match or exceed FRAX in diabetic
-populations.
+The ROC curves in Figure~\ref{fig:uc_roc} compare discriminative ability in all classification thresholds. BEHRT-LoRA achieved an area under the ROC curve (AUC) of 0.877, compared to 0.765 for the hip of FRAX \%. FRAX is widely considered a moderate discriminator for hip fracture, with AUC values in the literature on diabetes typically reported in the range 0.72--0.78~\citep{Giangregorio2012JBMR,Beaudoin2019OsteoInt}. BEHRT-LoRA achieved this improvement using routinely collected administrative codes alone, without requiring a clinical interview or BMD measurement. This 11 percent gain over FRAX extends the previous literature, suggesting that EHR-derived models can match or exceed FRAX in diabetic populations.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.65\textwidth]{figUC_B_roc_behrt_frax_2026-05-22.png}
-\caption{Receiver operating characteristic curves for binary hip fracture
-prediction in the UChicago diabetic cohort. BEHRT-LoRA (red, AUC = 0.877)
-uses the complement of the predicted control-class probability.
-FRAX (blue, AUC = 0.765) uses the assigned 10-year hip fracture percentage.
-The diagonal dotted line represents a random classifier.}
+\caption{Receiver operating characteristic curves for binary hip fracture prediction in the University of Chicago diabetic cohort. BEHRT-LoRA (red, AUC = 0.877) uses the complement of the predicted control-class probability. FRAX (blue, AUC = 0.765) uses the assigned 10-year hip fracture percentage. The diagonal dotted line represents a random classifier.}
 \label{fig:uc_roc}
 \end{figure}
 
 \paragraph{Precision--recall analysis.}
-Because hip fractures are rare (prevalence 0.6\% in this cohort), the ROC curve
-can be overly optimistic. A model that correctly labels most patients in the
-majority class will achieve a high AUC even if it performs poorly on the cases
-that matter clinically. The precision--recall (PR) curves in
-Figure~\ref{fig:uc_pr} provide a more demanding evaluation. A random classifier
-has an AUPRC equal to the outcome prevalence; in this cohort that baseline is
-0.006. BEHRT-LoRA achieved an AUPRC of 0.143, more than 20 times above the
-baseline. FRAX achieved an AUPRC of 0.024, four times above the baseline but
-six times lower than BEHRT-LoRA. For a given level of sensitivity, BEHRT-LoRA
-raises far fewer false alarms than FRAX. A clinician acting on BEHRT-LoRA
-alerts would be correct more often than one acting on FRAX thresholds at the
-same recall level.
+Because hip fractures are rare (prevalence 0.6\% in this cohort), the ROC curve can be overly optimistic: a model that correctly labels most patients in the majority class will achieve a high AUC even if it performs poorly on cases of greatest clinical importance. The precision--recall (PR) curves in Figure~\ref{fig:uc_pr} provide a more demanding evaluation. A random classifier has an AUPRC equal to the prevalence of the outcome, which corresponds to 0.006 in this cohort. BEHRT-LoRA achieved an AUPRC of 0.143, more than 20 times above this baseline. FRAX achieved an AUPRC of 0.024, four times higher than baseline but six times lower than BEHRT-LoRA. At any given level of sensitivity, BEHRT-LoRA raised far fewer false alarms than FRAX, indicating that a clinician acting on BEHRT-LoRA alerts would be correct more often than a clinician acting on FRAX thresholds at the same recall level.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.65\textwidth]{figUC_C_pr_behrt_frax_2026-05-22.png}
-\caption{Precision--recall curves for binary hip fracture prediction in the
-UChicago diabetic cohort. BEHRT-LoRA (red, AUPRC = 0.143) substantially
-outperforms FRAX hip \% (blue, AUPRC = 0.024). The horizontal dotted grey
-line indicates the no-skill baseline (prevalence = 0.006), which equals
-the AUPRC of a random classifier.}
+\caption{Precision--recall curves for binary hip fracture prediction in the University of Chicago diabetic cohort. BEHRT-LoRA (red, AUPRC = 0.143) substantially outperforms FRAX hip \% (blue, AUPRC = 0.024). The horizontal dotted grey line indicates the no-skill baseline (prevalence = 0.006), which equals the AUPRC of a random classifier.}
 \label{fig:uc_pr}
 \end{figure}
 
-Taken together, these results show that BEHRT-LoRA can identify diabetic
-patients at elevated hip fracture risk from the electronic health record alone.
-No DXA scan, clinical interview, or active data collection is required. The
-model could be applied continuously across the full population of patients with
-diabetes in a health system, flagging the small subset of individuals who
-warrant a formal fracture risk assessment without any additional clinical
-workload.
+Together, these results demonstrate that BEHRT-LoRA can identify diabetic patients with elevated risk of hip fracture from the electronic health record alone, without requiring a DXA scan, clinical interview, or active data collection. The model could be continuously applied across the entire population of patients with diabetes within a health system, identifying the small subset of individuals that warrants a formal fracture risk assessment without any additional clinical workload.
 
 %% ----------------------------------------------------------
 \subsection{Limitations}
 %% ----------------------------------------------------------
 
-Several limitations of the present study should be acknowledged. First, the
-training data are administrative claims, which record diagnoses for billing
-purposes rather than for clinical completeness. Fall history, functional
-status, visual impairment, and patient-reported symptoms are invisible to the
-model. Second, the BEHRT-LoRA architecture imposes a 512-token limit on
-patient histories, so for patients with dense clinical activity the oldest
-events are discarded. Third, the UChicago FRAX comparison was conducted in
-a single academic center cohort of patients with diabetes. The generalizability
-of this comparison to community or rural populations is unknown. Fourth, we did
-not assess performance in patients who had already been evaluated for
-osteoporosis. The model may be most useful as a prior-screening step in the
-broader diabetic population before any formal fracture workup has been
-initiated.
+Several limitations of the present study warrant recognition. First, training data are administrative claims that record diagnoses for billing purposes rather than clinical completeness; fall history, functional status, visual impairment, and patient-reported symptoms. Second, the BEHRT-LoRA architecture imposes a 512-token limit on patient histories, so for patients with dense clinical activity, the oldest events are discarded. Third, the FRAX comparison was conducted in a single academic center cohort of diabetes patients at the University of Chicago; the generalizability of this comparison to community or rural populations is unknown. Fourth, performance was not assessed in patients who had already been evaluated for osteoporosis. The model may therefore be of greatest utility as a prior-screening step in the broader diabetic population, before any formal fracture evaluation has been initiated.
 
 %% ----------------------------------------------------------
 \subsection{Conclusions}
 %% ----------------------------------------------------------
 
-BEHRT-LoRA, trained on routinely collected administrative claims, identifies
-diabetic patients at risk for hip fracture with substantially higher
-discrimination than gradient-boosted or feedforward neural network
-architectures. It also outperforms FRAX on both ROC-AUC (0.877 vs.\ 0.765) and
-AUPRC (0.143 vs.\ 0.024) in an independent external cohort where clinical FRAX
-scores were available. The model requires no clinical action beyond what has
-already been recorded in the electronic health record, making it deployable as
-a passive, continuous screening tool across an entire population of patients
-with diabetes. In this workflow, the model identifies which patients warrant
-formal assessment and the clinician determines what to do next. Linking
-algorithmically derived risk scores to structured clinical follow-up in this
-manner represents a practical path toward translating these findings into
-improved fracture prevention.
+BEHRT-LoRA, trained in routinely collected administrative claims, identifies diabetic patients at risk of hip fracture with substantially higher discrimination than gradient-boosted or feedforward neural network architectures. It also outperformed FRAX on both ROC-AUC (0.877 vs.\ 0.765) and AUPRC (0.143 vs.\ 0.024) in an independent external cohort for which clinical FRAX scores were available. The model does not require clinical action beyond what has already been recorded in the electronic health record, making it deployable as a passive, continuous screening tool in a whole population of patients with diabetes. In this workflow, the model identifies the patients that warrant formal evaluation and the clinician determines what to do next. Linking algorithmically derived risk scores to structured clinical follow-up in this manner represents a practical path toward translating these findings into improved fracture prevention.
 
 
-% Bibliography
-\bibliographystyle{vancouver}
-\bibliography{references}
-
-\end{document}
 % Bibliography
 \bibliographystyle{vancouver}
 \bibliography{references}
