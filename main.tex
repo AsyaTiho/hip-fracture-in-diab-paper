@@ -316,7 +316,7 @@ In contrast to overall accuracy, which is dominated by the most prevalent class,
 
 BEHRT-LoRA achieved the highest macro-averaged performance on the held-out test set, outperforming XGBoost and the neural network on every summary metric (Table~\ref{tab:overall_comparison}). The macro-averaged ROC-AUC was 0.973 for BEHRT-LoRA, compared to 0.764 for XGBoost and 0.783 for the neural network. In practical terms, BEHRT-LoRA correctly ranked a high-risk patient above a low-risk patient in approximately 98 out of 100 comparisons, while the simpler models did so in approximately 78 out of 100.
 
-The ROC curves shown in Figure~\ref{fig:roc_curves} characterize how well each model separates risk groups across all possible decision thresholds; however, ROC analysis can be overly optimistic when cases are rare. The precision--recall curves in Figure~\ref{fig:pr_curves} provide a more demanding evaluation: they depict the trade-off between the proportion of true fracture cases identified and the rate at which false alarms are raised. A model that flags every patient as high-risk would identify all true cases but would be incorrect nearly every time, given the rarity of fractures in this cohort. The area under the precision--recall curve therefore reflects whether a model can identify a meaningful proportion of at-risk patients without overwhelming clinicians with false positives, which is the practically relevant question in a screening setting.
+The ROC curves shown in Figure~\ref{fig:performance_panel}\textbf{a}--\textbf{c} characterize how well each model separates risk groups across all possible decision thresholds; however, ROC analysis can be overly optimistic when cases are rare. The precision--recall curves in Figure~\ref{fig:performance_panel}\textbf{d}--\textbf{f} provide a more demanding evaluation: they depict the trade-off between the proportion of true fracture cases identified and the rate at which false alarms are raised. A model that flags every patient as high-risk would identify all true cases but would be incorrect nearly every time, given the rarity of fractures in this cohort. The area under the precision--recall curve therefore reflects whether a model can identify a meaningful proportion of at-risk patients without overwhelming clinicians with false positives, which is the practically relevant question in a screening setting.
 
 \begin{table}[H]
 \centering
@@ -333,45 +333,7 @@ NN         & 0.580 & 0.257 & 0.509 & 0.199 & 0.783 \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[H]
-\centering
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig2_roc_behrt_2026-05-22.png}
-  \caption{BEHRT-LoRA}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig2_roc_xgboost.png}
-  \caption{XGBoost}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig2_roc_nn.png}
-  \caption{Neural Network}
-\end{subfigure}
-\caption{One-vs-rest receiver operating characteristic (ROC) curves for each risk class on the MarketScan held-out test set. Each panel shows per-class curves with the corresponding area under the curve (AUC) annotated in the legend. The diagonal dashed line represents a random classifier.}
-\label{fig:roc_curves}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig1_pr_behrt_2026-05-22.png}
-  \caption{BEHRT-LoRA}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig1_pr_xgboost.png}
-  \caption{XGBoost}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
-  \includegraphics[width=\textwidth]{fig1_pr_nn.png}
-  \caption{Neural Network}
-\end{subfigure}
-\caption{One-vs-rest precision--recall curves for each risk class on the MarketScan held-out test set. The area under the precision--recall curve (AUPRC) is annotated in each legend. Horizontal dashed lines indicate class prevalence, which serves as the baseline AUPRC for a random classifier. The $y$-axis is log-scaled for XGBoost and the Neural Network to make the low-precision regime visible.}
-\label{fig:pr_curves}
-\end{figure}
+% Combined ROC / PR panel for MarketScan + All of Us appears after the AoU results paragraph below (see Figure~\ref{fig:performance_panel}).
 
 \subsubsection{External Validation (All of Us)}
 
@@ -392,46 +354,82 @@ NN         & 0.281 & 0.253 & 0.179 & 0.117 & 0.408 \\
 \end{tabular}
 \end{table}
 
-All three models exhibited substantial degradation in discrimination relative to the MarketScan held-out test set, but the magnitude of the drop differed sharply across architectures. BEHRT-LoRA retained the highest macro ROC-AUC (0.655) and the highest macro F1 (0.258), preserving meaningful but reduced predictive ability. XGBoost and the neural network performed worse than chance on the external cohort, with macro ROC-AUC values of 0.437 and 0.408, respectively, indicating that their probability rankings transferred poorly to the All of Us population. The ROC and precision--recall curves in Figures~\ref{fig:aou_roc_curves} and~\ref{fig:aou_pr_curves} show this attenuation directly: BEHRT-LoRA curves remain visibly separated from the diagonal across all classes, whereas those for XGBoost and the neural network collapse toward or below it.
+All three models exhibited substantial degradation in discrimination relative to the MarketScan held-out test set, but the magnitude of the drop differed sharply across architectures. BEHRT-LoRA retained the highest macro ROC-AUC (0.655) and the highest macro F1 (0.258), preserving meaningful but reduced predictive ability. XGBoost and the neural network performed worse than chance on the external cohort, with macro ROC-AUC values of 0.437 and 0.408, respectively, indicating that their probability rankings transferred poorly to the All of Us population. The ROC and precision--recall curves in Figure~\ref{fig:performance_panel}\textbf{g}--\textbf{l} show this attenuation directly: BEHRT-LoRA curves remain visibly separated from the diagonal across all classes, whereas those for XGBoost and the neural network collapse toward or below it.
 
-\begin{figure}[H]
+\begin{figure}[p]
 \centering
-\begin{subfigure}[t]{0.32\textwidth}
+% Column headers
+\makebox[0.31\textwidth][c]{\small\textbf{BEHRT-LoRA}}\hfill
+\makebox[0.31\textwidth][c]{\small\textbf{XGBoost}}\hfill
+\makebox[0.31\textwidth][c]{\small\textbf{Neural Network}}\par\vspace{0.3em}
+
+% Row 1: MarketScan ROC
+\begin{subfigure}[b]{0.31\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_behrt_2026-05-22.png}
+  \caption{}\label{fig:perf-a}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.31\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_xgboost.png}
+  \caption{}\label{fig:perf-b}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.31\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_nn.png}
+  \caption{}\label{fig:perf-c}
+\end{subfigure}\par
+{\small\textit{MarketScan --- ROC}}\par\vspace{0.4em}
+
+% Row 2: MarketScan PR
+\begin{subfigure}[b]{0.31\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_behrt_2026-05-22.png}
+  \caption{}\label{fig:perf-d}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.31\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_xgboost.png}
+  \caption{}\label{fig:perf-e}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.31\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_nn.png}
+  \caption{}\label{fig:perf-f}
+\end{subfigure}\par
+{\small\textit{MarketScan --- Precision--Recall}}\par\vspace{0.4em}
+
+% Row 3: All of Us ROC
+\begin{subfigure}[b]{0.31\textwidth}
   \includegraphics[width=\textwidth]{fig2_roc_behrt_aou.png}
-  \caption{BEHRT-LoRA}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
+  \caption{}\label{fig:perf-g}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.31\textwidth}
   \includegraphics[width=\textwidth]{fig2_roc_xgboost_aou.png}
-  \caption{XGBoost}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
+  \caption{}\label{fig:perf-h}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.31\textwidth}
   \includegraphics[width=\textwidth]{fig2_roc_nn_aou.png}
-  \caption{Neural Network}
-\end{subfigure}
-\caption{One-vs-rest receiver operating characteristic (ROC) curves for each risk class on the All of Us external validation cohort. Each panel shows per-class curves with the corresponding area under the curve (AUC) annotated in the legend. The diagonal dashed line represents a random classifier.}
-\label{fig:aou_roc_curves}
-\end{figure}
+  \caption{}\label{fig:perf-i}
+\end{subfigure}\par
+{\small\textit{All of Us --- ROC}}\par\vspace{0.4em}
 
-\begin{figure}[H]
-\centering
-\begin{subfigure}[t]{0.32\textwidth}
+% Row 4: All of Us PR
+\begin{subfigure}[b]{0.31\textwidth}
   \includegraphics[width=\textwidth]{fig1_pr_behrt_aou.png}
-  \caption{BEHRT-LoRA}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
+  \caption{}\label{fig:perf-j}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.31\textwidth}
   \includegraphics[width=\textwidth]{fig1_pr_xgboost_aou.png}
-  \caption{XGBoost}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.32\textwidth}
+  \caption{}\label{fig:perf-k}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.31\textwidth}
   \includegraphics[width=\textwidth]{fig1_pr_nn_aou.png}
-  \caption{Neural Network}
-\end{subfigure}
-\caption{One-vs-rest precision--recall curves for each risk class on the All of Us external validation cohort. The area under the precision--recall curve (AUPRC) is annotated in each legend. Horizontal dashed lines indicate class prevalence, which serves as the baseline AUPRC for a random classifier.}
-\label{fig:aou_pr_curves}
+  \caption{}\label{fig:perf-l}
+\end{subfigure}\par
+{\small\textit{All of Us --- Precision--Recall}}
+
+\caption{\textbf{Discrimination performance across models and cohorts.}
+(\textbf{a}--\textbf{c}) One-vs-rest ROC curves on the MarketScan held-out test set.
+(\textbf{d}--\textbf{f}) One-vs-rest precision--recall curves on MarketScan; the $y$-axis is log-scaled for XGBoost and the neural network to make the low-precision regime visible.
+(\textbf{g}--\textbf{i}) One-vs-rest ROC curves on the All of Us external validation cohort.
+(\textbf{j}--\textbf{l}) One-vs-rest precision--recall curves on All of Us.
+Columns correspond to the three model architectures (BEHRT-LoRA, XGBoost, Neural Network). Per-class AUC and AUPRC values are annotated in each panel's legend. Diagonal dashed lines in ROC panels denote the random classifier; horizontal dashed lines in precision--recall panels denote class prevalence, which serves as the baseline AUPRC.}
+\label{fig:performance_panel}
 \end{figure}
 
 %% ----------------------------------------------------------
