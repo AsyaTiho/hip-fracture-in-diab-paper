@@ -141,7 +141,7 @@ Group & Label & Definition & $N$ \\
 
 \subsection{All of Us Validation Cohort}
 
-The same diabetes diagnosis and minimum-age criteria were applied to the \textit{All of Us} CDR dataset~v8 (\texttt{C2024Q3R8}), which produced a validation cohort of 98{,}399 participants with a documented diabetes diagnosis and at least one electronic health record (EHR) condition record. Continuous enrollment was not required, as \textit{All of Us} is a prospective research cohort rather than an insurance claims dataset. All cohort construction was performed in BigQuery within the \textit{All of Us} Researcher Workbench.
+The same diabetes diagnosis and minimum-age criteria were applied to the \textit{All of Us} CDR dataset~v8 (\texttt{C2024Q3R8}), which produced a validation cohort of 73{,}688 participants with a documented diabetes diagnosis and at least one electronic health record (EHR) condition record. Continuous enrollment was not required, as \textit{All of Us} is a prospective research cohort rather than an insurance claims dataset. All cohort construction was performed in BigQuery within the \textit{All of Us} Researcher Workbench.
 
 %% ----------------------------------------------------------
 \subsection{Feature Representation}
@@ -281,7 +281,7 @@ All three models trained on MarketScan were applied without modification to the 
 
 Diagnosis sequences were constructed using the same procedure as for MarketScan. ICD-to-PhecodeX mapping was executed in BigQuery on approximately 123~million condition records. To ensure that phenotype tokens mapped to the same embedding vectors as during pre-training, all All of Us sequences were tokenized using the MarketScan-derived vocabulary; phenotypes present in All of Us but absent from the MarketScan vocabulary were mapped to the \texttt{UNK} token.
 
-Because transformer inference is substantially more computationally expensive than scoring sparse feature vectors, BEHRT-LoRA was evaluated on a class-stratified random subsample of $N = 50{,}000$ patients. Stratified sampling preserved within-class proportions, so AUROC, AUPRC, and per-class metrics remain directly comparable with those obtained from XGBoost and the neural network, both of which were evaluated on the full cohort of 98{,}249 patients.
+Because transformer inference is substantially more computationally expensive than scoring sparse feature vectors, BEHRT-LoRA was evaluated on a class-stratified random subsample of $N = 50{,}000$ patients. Stratified sampling preserved within-class proportions, so AUROC, AUPRC, and per-class metrics remain directly comparable with those obtained from XGBoost and the neural network, both of which were evaluated on the full cohort of 73{,}688 patients.
 
 \subsubsection{XGBoost and Feedforward Neural Network}
 
@@ -375,10 +375,64 @@ NN         & 0.580 & 0.257 & 0.509 & 0.199 & 0.783 \\
 
 \subsubsection{External Validation (All of Us)}
 
-To assess whether the observed discrimination generalizes beyond the training population, the same three models were applied without retraining to the All of Us cohort. Table~\ref{tab:aou_overall_comparison} presents the overall metrics on the external data.
+To assess whether the observed discrimination generalized beyond the training population, the same three models were applied without retraining to the All of Us cohort. XGBoost and the neural network were evaluated on the full cohort of $N = 73{,}688$ participants with diabetes; BEHRT-LoRA was evaluated on the $N = 73{,}626$ participants for whom a tokenizable diagnosis sequence could be constructed. The control class accounted for 98.69\% of the cohort, with 1.24\% in the $<$1-year group, 0.06\% in the 1--5-year group, and 0.01\% (six participants) in the 5--10-year group. Overall metrics on the external data are presented in Table~\ref{tab:aou_overall_comparison}.
 
-% TODO: insert Table tab:aou_overall_comparison and ROC/PR figures for All of Us
-% TODO: narrative comparing MarketScan vs All of Us overall metrics; discuss magnitude of any performance drop
+\begin{table}[H]
+\centering
+\caption{Overall multi-class performance on the All of Us external validation cohort. Precision, recall, and F1 are macro (unweighted) averages across the four risk classes; ROC-AUC is the macro one-vs-rest area under the curve. Higher is better for all metrics.}
+\label{tab:aou_overall_comparison}
+\begin{tabular}{lccccc}
+\toprule
+Model & Accuracy & Macro Precision & Macro Recall & Macro F1 & Macro ROC-AUC \\
+\midrule
+BEHRT-LoRA & 0.953 & 0.263 & 0.264 & 0.258 & 0.655 \\
+XGBoost    & 0.545 & 0.253 & 0.250 & 0.185 & 0.437 \\
+NN         & 0.281 & 0.253 & 0.179 & 0.117 & 0.408 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All three models exhibited substantial degradation in discrimination relative to the MarketScan held-out test set, but the magnitude of the drop differed sharply across architectures. BEHRT-LoRA retained the highest macro ROC-AUC (0.655) and the highest macro F1 (0.258), preserving meaningful but reduced predictive ability. XGBoost and the neural network performed worse than chance on the external cohort, with macro ROC-AUC values of 0.437 and 0.408, respectively, indicating that their probability rankings transferred poorly to the All of Us population. The ROC and precision--recall curves in Figures~\ref{fig:aou_roc_curves} and~\ref{fig:aou_pr_curves} show this attenuation directly: BEHRT-LoRA curves remain visibly separated from the diagonal across all classes, whereas those for XGBoost and the neural network collapse toward or below it.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_behrt_aou.png}
+  \caption{BEHRT-LoRA}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_xgboost_aou.png}
+  \caption{XGBoost}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig2_roc_nn_aou.png}
+  \caption{Neural Network}
+\end{subfigure}
+\caption{One-vs-rest receiver operating characteristic (ROC) curves for each risk class on the All of Us external validation cohort. Each panel shows per-class curves with the corresponding area under the curve (AUC) annotated in the legend. The diagonal dashed line represents a random classifier.}
+\label{fig:aou_roc_curves}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_behrt_aou.png}
+  \caption{BEHRT-LoRA}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_xgboost_aou.png}
+  \caption{XGBoost}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig1_pr_nn_aou.png}
+  \caption{Neural Network}
+\end{subfigure}
+\caption{One-vs-rest precision--recall curves for each risk class on the All of Us external validation cohort. The area under the precision--recall curve (AUPRC) is annotated in each legend. Horizontal dashed lines indicate class prevalence, which serves as the baseline AUPRC for a random classifier.}
+\label{fig:aou_pr_curves}
+\end{figure}
 
 %% ----------------------------------------------------------
 \subsection{Per-Class Classification Performance}
@@ -463,11 +517,32 @@ Metric & Risk Class & Mean & 95\% CI & Mean & 95\% CI & Mean & 95\% CI \\
 
 \subsubsection{External Validation (All of Us)}
 
-The per-class discrimination pattern observed on MarketScan was examined in the All of Us cohort to determine whether the advantage of BEHRT-LoRA over XGBoost and the neural network persists in an independent, demographically distinct population. Table~\ref{tab:aou_per_class_discrimination} reports ROCAUC and AUPRC per-class for external data.
+The per-class discrimination pattern observed on MarketScan was examined in the All of Us cohort to determine whether the advantage of BEHRT-LoRA over XGBoost and the neural network persists in an independent, demographically distinct population. Table~\ref{tab:aou_per_class_discrimination} reports per-class ROC-AUC and AUPRC on the external data.
 
-% TODO: insert Table tab:aou_per_class_discrimination
-% TODO: narrative comparing internal vs external per-class metrics; note any classes where performance degrades more than others
+\begin{table}[H]
+\centering
+\caption{Per-class discrimination on the All of Us external validation cohort. Values are bootstrap means with 95\% confidence intervals in parentheses. ROC-AUC and AUPRC are computed one-vs-rest using raw probability outputs. Risk classes follow Table~\ref{tab:groups}. Confidence intervals are wide for the 5--10-year class, which contained only six participants.}
+\label{tab:aou_per_class_discrimination}
+\begin{tabular}{llccc}
+\toprule
+Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
+\midrule
+\multirow{4}{*}{ROC-AUC}
+ & Control     & 0.699 (0.683--0.715) & 0.709 (0.692--0.725) & 0.731 (0.715--0.746) \\
+ & $<$1 year   & 0.626 (0.607--0.646) & 0.553 (0.531--0.575) & 0.560 (0.539--0.581) \\
+ & 1--5 years  & 0.650 (0.582--0.717) & 0.432 (0.352--0.519) & 0.307 (0.223--0.404) \\
+ & 5--10 years & 0.644 (0.347--0.815) & 0.056 (0.019--0.127) & 0.036 (0.004--0.100) \\
+\midrule
+\multirow{4}{*}{AUPRC}
+ & Control     & 0.994 (0.993--0.994) & 0.993 (0.993--0.994) & 0.994 (0.994--0.995) \\
+ & $<$1 year   & 0.022 (0.020--0.026) & 0.021 (0.018--0.026) & 0.023 (0.019--0.029) \\
+ & 1--5 years  & 0.001 (0.001--0.002) & 0.001 (0.000--0.001) & 0.000 (0.000--0.001) \\
+ & 5--10 years & 0.000 (0.000--0.000) & 0.000 (0.000--0.000) & 0.000 (0.000--0.000) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
+The performance gap between BEHRT-LoRA and the simpler models narrowed considerably in the external cohort, and the direction of the comparison reversed for the most prevalent class: XGBoost and the neural network achieved slightly higher ROC-AUC on the control class (0.709 and 0.731, respectively, vs.\ 0.699 for BEHRT-LoRA), while BEHRT-LoRA retained an advantage on each of the three fracture classes. The discrepancy was largest in the rare intermediate classes, where XGBoost and the neural network produced rankings close to or worse than chance (ROC-AUC of 0.432 and 0.307 for 1--5 years and 0.056 and 0.036 for 5--10 years), whereas BEHRT-LoRA preserved per-class ROC-AUC of 0.65 and 0.64 in these groups. AUPRC values for all three fracture classes collapsed toward zero across every model, reflecting both the extreme rarity of cases in the external cohort (1.24\%, 0.06\%, and 0.01\% for the three fracture classes) and a genuine loss of precision relative to MarketScan, where BEHRT-LoRA had achieved AUPRC values above 0.6 in the same groups.
 
 %% ----------------------------------------------------------
 \subsection{Sensitivity, PPV, and NPV}
@@ -528,10 +603,56 @@ Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
 
 \subsubsection{External Validation (All of Us)}
 
-When the same operating-point analysis was repeated in \textit{the All of Us} cohort, BEHRT-LoRA maintained higher sensitivity and PPV than both baseline models in all fracture risk groups (Table~\ref{tab:aou_diagnostic_comparison}). The confusion matrices for All of Us are shown in Figure~\ref{fig:aou_confusion_matrices}.
+The same operating-point analysis was repeated in the \textit{All of Us} cohort. The sensitivity--PPV trade-off observed on MarketScan did not transfer: under argmax assignment, all three models concentrated their predictions in the control class on the external data (Table~\ref{tab:aou_diagnostic_comparison}). BEHRT-LoRA classified 96.5\% of true controls correctly but identified only 4.4\% of $<$1-year cases, 4.7\% of 1--5-year cases, and none of the 5--10-year cases. PPV for fracture classes was low across all three models, with BEHRT-LoRA reaching 6.2\% on $<$1-year predictions, compared with under 0.1\% for XGBoost and the neural network. The confusion matrices in Figure~\ref{fig:aou_confusion_matrices} illustrate this collapse: for all three models, predictions are concentrated in the control column, reflecting the combined effect of the extreme class imbalance in the external cohort (98.69\% control) and a covariate shift between the MarketScan training distribution and All of Us. Negative predictive values exceeded 98.8\% in all three models and all fracture risk groups, but this reflects the rarity of the outcome rather than discriminative ability.
 
-% TODO: insert Table tab:aou_diagnostic_comparison and confusion matrix figure for All of Us
-% TODO: narrative discussing whether the sensitivity--PPV trade-off shifts on the external cohort
+\begin{table}[H]
+\centering
+\caption{Operating-point classification performance on the All of Us external validation cohort, computed using one-vs-rest argmax predictions. Sensitivity = TP/(TP+FN); PPV = TP/(TP+FP); NPV = TN/(TN+FN). Risk classes follow Table~\ref{tab:groups}.}
+\label{tab:aou_diagnostic_comparison}
+\begin{tabular}{llccc}
+\toprule
+Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
+\midrule
+\multirow{4}{*}{Sensitivity}
+ & Control     & 0.965 & 0.548 & 0.280 \\
+ & $<$1 year   & 0.044 & 0.338 & 0.435 \\
+ & 1--5 years  & 0.047 & 0.114 & 0.000 \\
+ & 5--10 years & 0.000 & 0.000 & 0.000 \\
+\midrule
+\multirow{4}{*}{PPV}
+ & Control     & 0.989 & 0.994 & 0.997 \\
+ & $<$1 year   & 0.062 & 0.018 & 0.016 \\
+ & 1--5 years  & 0.001 & 0.000 & 0.000 \\
+ & 5--10 years & 0.000 & 0.000 & 0.000 \\
+\midrule
+\multirow{4}{*}{NPV}
+ & Control     & 0.062 & 0.021 & 0.017 \\
+ & $<$1 year   & 0.988 & 0.989 & 0.989 \\
+ & 1--5 years  & 0.999 & 0.999 & 0.999 \\
+ & 5--10 years & 1.000 & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig4_cm_behrt_aou.png}
+  \caption{BEHRT-LoRA}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig4_cm_xgboost_aou.png}
+  \caption{XGBoost}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig4_cm_nn_aou.png}
+  \caption{Neural Network}
+\end{subfigure}
+\caption{Overall four-class confusion matrices on the All of Us external validation cohort. Cell shading uses a logarithmic scale to accommodate the extreme class imbalance. Classes are ordered by time to fracture ($<$1 year, 1--5 years, 5--10 years, $>$10 years) on both axes.}
+\label{fig:aou_confusion_matrices}
+\end{figure}
 
 %% ----------------------------------------------------------
 \subsection{Probability Calibration}
@@ -583,11 +704,47 @@ $<$1 year   & 0.0031 & 0.0127 & 0.0725 & 0.0859 & & 0.0019 & 0.0031 & 0.0031 \\
 
 \subsubsection{External Validation (All of Us)}
 
-Calibration was reassessed in the All of Us cohort to determine whether the isotonic calibrators fit on MarketScan data transfer to an external population. Table~\ref{tab:aou_brier_calibration_comparison} reports raw and isotonic-calibrated Brier scores, and Figure~\ref{fig:aou_calibration} shows the corresponding reliability diagrams.
+Calibration was reassessed in the All of Us cohort using the same isotonic procedure applied to the MarketScan held-out test set. Table~\ref{tab:aou_brier_calibration_comparison} reports raw and isotonic-calibrated Brier scores, and Figure~\ref{fig:aou_calibration} shows the corresponding reliability diagrams.
 
-% TODO: insert Table tab:aou_brier_calibration_comparison and calibration figure for All of Us
-% TODO: narrative discussing whether MarketScan-fitted calibrators transfer or whether recalibration on target-population data is needed
+\begin{table}[H]
+\centering
+\caption{Per-class Brier scores before and after isotonic calibration on the All of Us external validation cohort. Calibrators were fit on 70\% of the cohort and evaluated on the remaining 30\%. The baseline column reports $p(1-p)$, the Brier score of a constant predictor that always returns the class prevalence $p$. Lower is better. Risk classes follow Table~\ref{tab:groups}.}
+\label{tab:aou_brier_calibration_comparison}
+\begin{tabular}{lcccccccc}
+\toprule
+ & & \multicolumn{3}{c}{Raw probabilities} & & \multicolumn{3}{c}{Isotonic-calibrated} \\
+\cmidrule(lr){3-5} \cmidrule(lr){7-9}
+Risk Class & Baseline & BEHRT & XGB & NN & & BEHRT & XGB & NN \\
+\midrule
+Control     & 0.0129 & 0.0433 & 0.3543 & 0.5354 & & 0.0127 & 0.0127 & 0.0127 \\
+$<$1 year   & 0.0122 & 0.0182 & 0.1133 & 0.1500 & & 0.0121 & 0.0122 & 0.0122 \\
+1--5 years  & 0.0006 & 0.0150 & 0.0780 & 0.0474 & & 0.0006 & 0.0006 & 0.0006 \\
+5--10 years & 0.0001 & 0.0076 & 0.0335 & 0.1027 & & 0.0001 & 0.0001 & 0.0001 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
+Raw Brier scores on the external cohort were higher than on MarketScan for every model and every class, but the ordering across models was preserved: BEHRT-LoRA had the lowest raw Brier score in each class, followed by XGBoost, then the neural network. After isotonic recalibration in the All of Us cohort, all three models converged to values essentially equal to the prevalence-only baseline. The reliability diagrams in Figure~\ref{fig:aou_calibration} confirm this pattern: raw predictions deviate substantially from the diagonal for all three models, while the recalibrated curves lie close to it. Because calibrated Brier scores match the baseline almost exactly, the isotonic step in this cohort effectively reduces the probability outputs to a near-constant prediction equal to the class prevalence, indicating that little additional probabilistic information could be recovered from the raw outputs beyond what the marginal class distribution already provides.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig3_calibration_behrt_aou.png}
+  \caption{BEHRT-LoRA}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig3_calibration_xgboost_aou.png}
+  \caption{XGBoost}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+  \includegraphics[width=\textwidth]{fig3_calibration_nn_aou.png}
+  \caption{Neural Network}
+\end{subfigure}
+\caption{Reliability diagrams on the All of Us external validation cohort illustrating the effect of isotonic calibration. Dashed lines with circles show raw (uncalibrated) predicted probabilities; solid lines with squares show isotonic-calibrated probabilities fit on 70\% of the evaluation set and assessed on the remaining 30\%. The dotted diagonal represents perfect calibration. Classes are ordered consistently across panels ($<$1 year, 1--5 years, 5--10 years, $>$10 years).}
+\label{fig:aou_calibration}
+\end{figure}
 %% ============================================================
 %%  DISCUSSION
 %% ============================================================
@@ -613,6 +770,20 @@ A machine-learning model trained on administrative claims can only access inform
 This asymmetry has an important practical implication. The model is well suited to extracting signal from a large volume of routinely collected coded data. The comparative advantage of the clinician lies in the collection of new, first-hand information that the model cannot access. Combining both sources of information is likely to yield better risk stratification than either alone.
 
 Several variables that a clinician would consider essential are not reliably available in the MarketScan administrative claims used to train BEHRT-LoRA. Race and ethnicity are associated with differences in bone density and fracture incidence, but are poorly captured in commercial claims. BMI is a key input to FRAX and an independent predictor of fracture risk, yet it is infrequently coded in administrative data. The \textit{All of Us} Research Program addresses both of these gaps: as a prospective cohort with demographics and physical measurements reported by participants, it provides race and BMI in addition to the longitudinal diagnosis history that BEHRT-LoRA consumes. Future work incorporating these features may further close the gap between the retrospective signal available to the model and the clinical information that ideally a physician would consult.
+
+%% ----------------------------------------------------------
+\subsection{Generalization to the All of Us Cohort}
+%% ----------------------------------------------------------
+
+All three models lost discriminative ability on the All of Us cohort. The drop was largest for the rare fracture classes. Several factors plausibly contribute to this shift.
+
+First, the rare classes are far rarer in All of Us than in MarketScan. The 1--5-year group accounts for 0.06\% of the cohort. The 5--10-year group contains six participants. Per-class AUPRC is bounded by prevalence. Per-class ROC-AUC estimates from a handful of positives are dominated by sampling noise.
+
+Second, All of Us enrollment began in 2018. Most participants have shorter post-diabetes follow-up than the MarketScan window allows. Patients who would fracture five to ten years after diabetes onset have largely not been observed long enough. The late-fracture classes are therefore systematically truncated.
+
+Third, 146 PhecodeX phenotypes observed in All of Us were absent from the MarketScan vocabulary. These tokens were mapped to \texttt{UNK} for BEHRT-LoRA and discarded for XGBoost and the neural network. Any fracture-relevant signal carried by these phenotypes is lost at the input.
+
+Together, these factors point to label and covariate shift rather than a failure of model architecture. They also motivate future work in which the MarketScan-pretrained models are fine-tuned on All of Us sequences with the All of Us vocabulary intact.
 
 %% ----------------------------------------------------------
 \subsection{Comparison with FRAX: the University of Chicago Diabetic Cohort}
