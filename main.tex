@@ -396,7 +396,7 @@ All three models exhibited substantial degradation in discrimination relative to
 
 % Row 1: MarketScan ROC
 \begin{subfigure}[b]{0.31\textwidth}
-      \includegraphics[width=\textwidth]{figures/overleaf_figures/fig2_roc_behrt_2026-05-22.pdf}
+      \includegraphics[width=\textwidth]{figures/overleaf_figures/fig2_roc_behrt.pdf}
   \caption{}\label{fig:roc-a}
 \end{subfigure}\hfill
 \begin{subfigure}[b]{0.31\textwidth}
@@ -437,7 +437,7 @@ Columns correspond to the three model architectures (BEHRT-LoRA, XGBoost, Neural
 
 % Row 1: BEHRT-LoRA
 \begin{subfigure}[b]{0.40\textwidth}
-  \includegraphics[width=\textwidth]{figures/overleaf_figures/fig1_pr_behrt_2026-05-22.pdf}
+  \includegraphics[width=\textwidth]{figures/overleaf_figures/fig1_pr_behrt.pdf}
   \caption{}\label{fig:pr-a}
 \end{subfigure}\hfill
 \begin{subfigure}[b]{0.40\textwidth}
@@ -614,7 +614,7 @@ Metric & Risk Class & BEHRT-LoRA & XGBoost & NN \\
 
 % Row 1: MarketScan
 \begin{subfigure}[b]{0.31\textwidth}
-  \includegraphics[width=\textwidth]{figures/overleaf_figures/fig4_cm_behrt_2026-05-22.pdf}
+  \includegraphics[width=\textwidth]{figures/overleaf_figures/fig4_cm_behrt.pdf}
   \caption{}\label{fig:cm-a}
 \end{subfigure}\hfill
 \begin{subfigure}[b]{0.31\textwidth}
@@ -791,7 +791,7 @@ However, the shape of stratification differed between the two tools. FRAX produc
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/overleaf_figures/figUC_A_fracture_rate_decile_2026-05-22.pdf}
+\includegraphics[width=0.65\textwidth]{figures/overleaf_figures/figUC_A_fracture_rate_decile.pdf}
 \caption{Observed hip fracture rate by risk decile in the University of Chicago diabetes cohort ($N = 13{,}550$). Deciles were computed independently for BEHRT-LoRA (red circles, $1 - \hat{P}(\text{>10 years})$) and FRAX hip \% (blue squares) by quantile binning of each tool's continuous score. Error bars show $\pm 1$ standard error of the proportion. D1 = lowest-risk decile, D10 = highest.}
 \label{fig:uc_decile}
 \end{figure}
@@ -801,7 +801,7 @@ The ROC curves in Figure~\ref{fig:uc_roc} compare discriminative ability in all 
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/overleaf_figures/figUC_B_roc_behrt_frax_2026-05-22.pdf}
+\includegraphics[width=0.65\textwidth]{figures/overleaf_figures/figUC_B_roc_behrt_frax.pdf}
 \caption{Receiver operating characteristic curves for binary hip fracture prediction in the University of Chicago diabetes cohort. BEHRT-LoRA (red, AUC = 0.884) uses the complement of the predicted control-class probability. FRAX (blue, AUC = 0.765) uses the assigned 10-year hip fracture percentage. The diagonal dotted line represents a random classifier.}
 \label{fig:uc_roc}
 \end{figure}
@@ -811,7 +811,7 @@ Because hip fractures are rare (prevalence 0.6\% in this cohort), the ROC curve 
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.65\textwidth]{figures/overleaf_figures/figUC_C_pr_behrt_frax_2026-05-22.pdf}
+\includegraphics[width=0.65\textwidth]{figures/overleaf_figures/figUC_C_pr_behrt_frax.pdf}
 \caption{Precision--recall curves for binary hip fracture prediction in the University of Chicago diabetes cohort. BEHRT-LoRA (red, AUPRC = 0.125) substantially outperforms FRAX hip \% (blue, AUPRC = 0.024). The horizontal dotted grey line indicates the no-skill baseline (prevalence = 0.006), which equals the AUPRC of a random classifier.}
 \label{fig:uc_pr}
 \end{figure}
